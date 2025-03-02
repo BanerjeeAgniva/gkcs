@@ -1,6 +1,6 @@
 # Monolith vs. Microservices
 
-## Introduction
+## Introduction (Misconceptions!)
 - **Monolith**: A system where the entire application runs as a single unit.  
 - **Microservices**: A system where functionalities are broken into smaller, independent services.  
 
