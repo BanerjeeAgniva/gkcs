@@ -174,11 +174,47 @@ The team is also trying to route tweets by topic — "tech", "travel", "cats"...
 | Alice triggers many actions on tweet | ✅ Yes     | Perfect for event-driven systems               |
 
 ---
+<img width="749" alt="Screenshot 2025-04-25 at 2 38 32 PM" src="https://github.com/user-attachments/assets/88aa35e6-a3ef-4538-af34-49dac8560bc4" />
 
+## 📨 Message Handling: RabbitMQ vs Kafka
 
-Sure! Let’s understand **Message Brokers** using an **example with Alice, Bob, and Charlie**—our favorite trio.
+### 🐰 RabbitMQ
+
+RabbitMQ operates with a structure based on **queues** and **exchanges**:
+
+- **Each consumer has its own queue**.
+- Messages published to an **exchange** are routed and stored in these individual queues.
+- When a consumer **processes and acknowledges** a message, the message is **removed** from the queue.
+- **Isolation:** One consumer **cannot access** messages from another consumer's queue.
+
+🔁 This makes RabbitMQ suitable for **one-to-one** message delivery (point-to-point).
 
 ---
+<img width="468" alt="Screenshot 2025-04-25 at 2 45 20 PM" src="https://github.com/user-attachments/assets/a08d0a7c-d590-4131-ac50-9b18acd4438d" />
+
+### 🧃 Kafka
+
+Kafka uses a **log-based structure**:
+
+- Messages are stored in **topics** (which act like shared logs).
+- Consumers **do not get their own queues**. Instead, they **maintain pointers** (called **offsets**) to track their position in the topic.
+- After processing a message, a consumer **moves its offset** forward.
+- **Messages are not deleted** immediately, allowing **multiple consumers** to read the same message independently.
+
+🔁 Kafka supports **one-to-many** delivery and **replayability**, which makes it great for **event-driven** and **stream processing** systems.
+
+---
+
+### ⚖️ Summary Comparison
+
+| Feature               | RabbitMQ                          | Kafka                                 |
+|----------------------|-----------------------------------|----------------------------------------|
+| Queue Ownership      | One queue per consumer            | Shared topic with consumer offsets     |
+| Message Deletion     | Deleted after consumption         | Retained for a configurable period     |
+| Delivery Model       | Point-to-point                    | Pub/Sub and stream-based               |
+| Message Replay       | Not supported                     | Supported via offsets                  |
+| Ideal Use Case       | Task queues, job distribution     | Event sourcing, log aggregation        |
+
 
 ## 🧩 What is a Message Broker?
 
