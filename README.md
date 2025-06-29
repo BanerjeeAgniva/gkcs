@@ -123,3 +123,145 @@ Distributes traffic across multiple servers to improve **availability** and **re
 - Use **dual LBs** in a cluster to monitor and replace each other on failure.
 
 ---
+
+## Caching
+
+### What is Caching?
+Caches store frequently accessed data in a fast-access layer to reduce latency and load on backend systems.
+
+> **Principle**: Locality of reference — recently accessed data is likely to be accessed again.
+
+### Why Use Caching?
+- Reduces response time
+- Offloads backend services
+- Makes high-demand requirements feasible
+
+---
+
+### Application Server Cache
+- Cache is local to the request-handling node.
+- Stored in **memory** (fastest) or **disk** (slower, but faster than network).
+- Works best in single-node environments.
+-  **Challenge** in multi-node: cache inconsistency due to random request routing.
+
+---
+
+### Global / Distributed Cache
+Used to overcome cache misses in distributed setups:
+- Shared cache among nodes (e.g., Redis, Memcached)
+
+---
+
+### Content Delivery Network (CDN)
+Used for static media (images, videos, etc.).
+
+**How it works**:
+1. Request hits CDN.
+2. If content available → served.
+3. Else → fetch from origin, cache, and serve.
+
+> **Tip**: Serve media from `static.domain.com` for future CDN migration ease.
+
+---
+
+### Cache Invalidation Strategies
+
+| Strategy            | Description                                                                 | Pros                       | Cons                            |
+|---------------------|-----------------------------------------------------------------------------|-----------------------------|----------------------------------|
+| **Write-through**   | Write to cache **and** DB at same time                                       | Strong consistency          | Higher write latency             |
+| **Write-around**    | Write directly to DB, bypass cache                                           | Avoids cache pollution      | Potential read misses            |
+| **Write-back**      | Write to cache first, write to DB asynchronously                             | Fast writes                 | Risk of data loss on crash       |
+
+---
+
+### Cache Eviction Policies
+
+| Policy       | Description                                              |
+|--------------|----------------------------------------------------------|
+| FIFO         | Removes oldest added items first                         |
+| LIFO         | Removes most recent items first                          |
+| LRU          | Removes **least recently used** items                    |
+| MRU          | Removes **most recently used** items                     |
+| LFU          | Removes **least frequently used** items                  |
+| RR           | Removes random items                                     |
+
+---
+
+## Data Partitioning (Sharding)
+
+### What is Sharding?
+Splitting a large DB into smaller pieces across servers to improve:
+- Performance
+- Manageability
+- Load balancing
+- Availability
+
+> **Why?** Horizontal scaling is cheaper and more flexible than vertical scaling.
+
+---
+
+### Partitioning Methods
+
+#### 1. Horizontal Partitioning
+- Split by rows (e.g., ZIP codes `< 10000` vs `>= 10000`)
+- Also called **range-based** sharding
+
+>  Unbalanced partitions if data is skewed
+
+---
+
+#### 2. Vertical Partitioning
+- Split by feature or table (e.g., users, photos, followers in separate DBs)
+
+>  May still need horizontal partitioning later
+
+---
+
+#### 3. Directory-based Partitioning
+- Use a **lookup service** to determine data location
+
+>  Easy to rebalance  
+>  Adds complexity and a new **SPOF** (single point of failure)
+
+---
+
+### Partitioning Criteria
+
+| Type                  | Description                                                            |
+|-----------------------|------------------------------------------------------------------------|
+| **Hash-based**        | `hash(ID) % N` determines server                                       |
+| **List-based**        | Explicit value-to-shard mapping (e.g., Nordic countries in 1 shard)    |
+| **Round-robin**       | `i-th` record → `(i mod N)-th` partition                               |
+| **Composite**         | Combine methods (e.g., List + Hash)                                    |
+
+---
+
+### Challenges in Sharding
+
+#### a. Joins and Denormalization
+- Joins across shards are slow
+- Solution: Denormalization (but leads to data duplication/inconsistency)
+
+#### b. Referential Integrity
+- Foreign keys across shards not supported
+- Enforce integrity in **application logic**
+
+#### c. Rebalancing
+Reasons to rebalance:
+- Skewed data (hotspots)
+- Uneven load
+
+>  Downtime likely unless using **directory-based partitioning**
+
+---
+
+### Summary
+
+| Strategy            | Strength                         | Weakness                         |
+|---------------------|----------------------------------|----------------------------------|
+| Horizontal          | Scalable, simple to implement     | Risk of skewed data              |
+| Vertical            | Clean separation by feature       | Not scalable in the long term    |
+| Directory-based     | Easy rebalancing                 | Extra layer of complexity        |
+
+---
+
