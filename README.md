@@ -1,5 +1,72 @@
 # System Design Basics Notes
 
+
+# Functional vs Non-Functional Requirements
+
+---
+
+## 🔹 Functional Requirements
+
+### ✅ Definition:
+Specify **what** a system should do — its core **features and behavior**.
+
+### 🎯 Purpose:
+Define **functions**, **interactions**, and **rules** of the system.
+
+### 📌 Examples:
+- User can log in using email and password
+- Admin can delete a user account
+- The system sends a confirmation email after registration
+- Search functionality filters products by category
+
+### 🔁 Characteristics:
+- Use cases or user stories
+- Typically documented using **"shall"** statements
+- Derived from business requirements
+
+---
+
+## 🔸 Non-Functional Requirements
+
+### ✅ Definition:
+Specify **how** the system performs — the **qualities or constraints**.
+
+### 🎯 Purpose:
+Ensure performance, usability, reliability, scalability, and compliance.
+
+### 📌 Examples:
+- The system should respond within 200ms
+- The application must handle 10,000 concurrent users
+- Availability of 99.99% uptime
+- Data must be encrypted at rest and in transit
+
+### 🔁 Characteristics:
+- Also known as **Quality Attributes**
+- Often measurable
+- Not related to specific business functions
+
+---
+
+## 🔄 Comparison Table
+
+| Aspect                  | Functional Requirements                | Non-Functional Requirements               |
+|------------------------|----------------------------------------|-------------------------------------------|
+| **Focus**              | Features and capabilities              | Performance, quality, constraints         |
+| **Defines**            | What the system should do              | How the system should behave              |
+| **Validation**         | Verified through test cases/use cases  | Verified via metrics and benchmarks       |
+| **Examples**           | Login, Registration, Search            | Latency, Security, Availability           |
+| **Driven by**          | Business needs                         | Technical and operational needs           |
+
+---
+
+## 📝 Summary
+
+- Functional = *What it does*
+- Non-Functional = *How it does it*
+
+Both are **critical** for successful system design and delivery.
+
+
 ## Overview
 
 When designing scalable systems, consider:
