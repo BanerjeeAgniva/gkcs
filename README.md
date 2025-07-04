@@ -332,3 +332,93 @@ Reasons to rebalance:
 
 ---
 
+---
+
+---
+
+
+# RESTful Conventions
+
+---
+
+## 🌐 What is REST?
+
+**REST (Representational State Transfer)** is an architectural style for building scalable web services using HTTP. RESTful APIs follow conventions to make services predictable, uniform, and stateless.
+
+---
+
+## ✅ RESTful API Core Principles
+
+1. **Statelessness**  
+   - Each request from client to server must contain all the information needed.
+   - Server does **not store** session state.
+
+2. **Resource-Based**  
+   - Everything is treated as a resource (e.g., user, product).
+   - Resources are identified by URIs.
+
+3. **Use of HTTP Methods (CRUD Mapping)**
+
+| HTTP Method | Action   | Description                          | Example                 |
+|-------------|----------|--------------------------------------|-------------------------|
+| GET         | Read     | Fetch resource(s)                    | `GET /users/123`        |
+| POST        | Create   | Add new resource                     | `POST /users`           |
+| PUT         | Update   | Replace resource                     | `PUT /users/123`        |
+| PATCH       | Update   | Partially update resource            | `PATCH /users/123`      |
+| DELETE      | Delete   | Remove resource                      | `DELETE /users/123`     |
+
+---
+
+## 📁 URI Naming Conventions
+
+- Use **nouns**, not verbs:  
+  ❌ `GET /getUser` → ✅ `GET /users/123`
+
+- Use **plural nouns** for collections:  
+  ✅ `GET /products`, `POST /orders`
+
+- Nest resources for hierarchy:  
+  ✅ `GET /users/123/orders`
+
+- Use query parameters for filtering/search:  
+  ✅ `GET /products?category=shoes&sort=price`
+
+---
+
+## 🧩 Response Conventions
+
+- Return standard **HTTP status codes**:
+  
+| Code | Meaning                 | Use Case                      |
+|------|-------------------------|-------------------------------|
+| 200  | OK                      | Successful GET, PUT, DELETE   |
+| 201  | Created                 | Resource created (POST)       |
+| 204  | No Content              | Successful, no return body    |
+| 400  | Bad Request             | Malformed request             |
+| 401  | Unauthorized            | Auth required                 |
+| 403  | Forbidden               | No permission                 |
+| 404  | Not Found               | Resource doesn't exist        |
+| 500  | Internal Server Error   | Unexpected server issue       |
+
+---
+
+## 🧠 Best Practices
+
+- Use **JSON** as the default response format.
+- Include **HATEOAS** (Hypermedia as the Engine of Application State) if needed for discoverability.
+- Support **pagination** for large result sets (e.g., `?page=2&limit=10`).
+- Use **consistent error messages** with error codes and descriptions.
+
+---
+
+## 📦 Example: RESTful API for a Blog
+
+```http
+GET     /posts                 // list all posts
+POST    /posts                 // create a new post
+GET     /posts/42              // get post with ID 42
+PUT     /posts/42              // update post with ID 42
+DELETE  /posts/42              // delete post with ID 42
+GET     /posts/42/comments     // get comments for post 42
+POST    /posts/42/comments     // add comment to post 42
+
