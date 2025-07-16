@@ -422,3 +422,94 @@ DELETE  /posts/42              // delete post with ID 42
 GET     /posts/42/comments     // get comments for post 42
 POST    /posts/42/comments     // add comment to post 42
 
+
+```
+# Designing a URL Shortening Service like TinyURL
+
+---
+
+# Designing a URL Shortening Service like TinyURL
+
+---
+
+## 🔍 Why URL Shortening?
+
+URL shortening creates compact aliases ("short links") for long URLs to:
+
+* Save space (e.g., in tweets or printed material)
+* Reduce typing errors
+* Optimize links across devices
+* Track link analytics and performance
+* Hide affiliate or tracking URLs
+
+**Example:**
+Original: `https://www.educative.io/collection/.../5668600916475904/`
+Shortened: `http://tinyurl.com/jlg8zpc`
+
+---
+
+## ✅ Functional Requirements
+
+1. Generate a **unique short link** for a given long URL.
+2. Redirect a **short link** to the original URL.
+3. Support **custom aliases** for short links.
+4. Support **link expiration**, with default and user-defined timeouts.
+
+---
+
+## ⚖️ Non-Functional Requirements
+
+1. **High availability**: Redirection service must always be operational.
+2. **Low latency**: Real-time URL redirection.
+3. **Unpredictable**: Short links should be **non-sequential and non-guessable**.
+
+---
+
+## ⌚ Extended Requirements
+
+1. **Analytics**: Track number of redirections per short link.
+2. **REST API**: Expose the service functionality for programmatic access.
+
+---
+
+## ⚙️ System Estimates (Based on 1M new URLs/month, 1000 bytes per URL entry)
+
+### 1. Traffic
+
+* **New URLs**: 1M/month ≈ \~0.39 URLs/sec
+* **Redirection requests**: 100x read/write = \~39 URLs/sec
+
+### 2. Storage
+
+* Data per URL entry: \~1000 bytes
+* 1M/month × 12 months × 5 years = 60M entries
+* Storage: 60M × 1000B = **60GB**
+
+### 3. Bandwidth
+
+* **Write**: 0.39 req/sec × 1000B = \~390B/sec
+* **Read**: 39 req/sec × 1000B = \~39KB/sec
+
+### 4. Memory (Caching)
+
+* Daily traffic: 39 req/sec × 3600 × 24 = \~3.37M requests/day
+* Cache 20% hot URLs (80-20 rule):
+
+  * Memory: 0.2 × 3.37M × 1000B = **\~675MB**
+
+> Actual memory usage may be lower due to duplicate hits.
+
+---
+
+## ✅ Summary Table
+
+| Component          | Estimate            |
+| ------------------ | ------------------- |
+| New URLs/sec       | \~0.39              |
+| Redirections/sec   | \~39                |
+| Incoming data/sec  | \~390 B             |
+| Outgoing data/sec  | \~39 KB             |
+| Storage (5 years)  | 60 GB               |
+| Memory (for cache) | \~675 MB (hot URLs) |
+
+---
