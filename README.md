@@ -424,7 +424,95 @@ POST    /posts/42/comments     // add comment to post 42
 
 
 ```
-# Designing a URL Shortening Service like TinyURL
+ **example-based comparison** of SOAP(Simple Object Access Protocol) vs REST APIs to help you see the difference:
+
+---
+
+## 📦 Use Case: **Get user details by ID**
+
+### ✅ REST API Example (JSON over HTTP)
+
+**URL:**
+
+```
+GET https://api.example.com/users/123
+```
+
+**Request:**
+(No body needed for a GET request)
+
+**Response (JSON):**
+
+```json
+{
+  "id": 123,
+  "name": "Alice",
+  "email": "alice@example.com"
+}
+```
+
+✔ Simple
+✔ Uses standard HTTP verbs
+✔ Lightweight (JSON)
+✔ Easily testable in browser or Postman
+
+---
+
+### 🧼 SOAP API Example (XML over HTTP)
+
+**Endpoint:**
+
+```
+POST https://api.example.com/userService
+```
+
+**Request (XML):**
+
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:usr="http://example.com/user">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <usr:GetUserDetails>
+         <usr:UserId>123</usr:UserId>
+      </usr:GetUserDetails>
+   </soapenv:Body>
+</soapenv:Envelope>
+```
+
+**Response (XML):**
+
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:usr="http://example.com/user">
+   <soapenv:Body>
+      <usr:GetUserDetailsResponse>
+         <usr:User>
+            <usr:Id>123</usr:Id>
+            <usr:Name>Alice</usr:Name>
+            <usr:Email>alice@example.com</usr:Email>
+         </usr:User>
+      </usr:GetUserDetailsResponse>
+   </soapenv:Body>
+</soapenv:Envelope>
+```
+
+✖ Verbose
+✖ Requires parsing nested XML
+✔ Built-in standards for security, reliability, and WSDL documentation
+
+---
+
+### 🆚 Summary
+
+| Feature            | REST                    | SOAP                      |
+| ------------------ | ----------------------- | ------------------------- |
+| Request Format     | Simple URL + HTTP       | Enclosed XML in POST body |
+| Response Format    | JSON (or XML, optional) | XML only                  |
+| Verbosity          | Lightweight             | Heavy                     |
+| Browser-Friendly   | Yes                     | No                        |
+| Contract (WSDL)    | Optional                | Required                  |
+| Security Standards | Needs custom handling   | Built-in WS-Security      |
 
 ---
 
@@ -443,7 +531,7 @@ URL shortening creates compact aliases ("short links") for long URLs to:
 * Hide affiliate or tracking URLs
 
 **Example:**
-Original: `https://www.educative.io/collection/.../5668600916475904/`
+Original: `https://www.agniva.com/photographs.../9348349875/`
 Shortened: `http://tinyurl.com/jlg8zpc`
 
 ---
