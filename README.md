@@ -601,3 +601,106 @@ Shortened: `http://tinyurl.com/jlg8zpc`
 | Memory (for cache) | \~675 MB (hot URLs) |
 
 ---
+
+## 📡 **System APIs (RESTful)**
+
+These APIs will be used by developers or internal services to interact with your URL shortening platform.
+
+### 🔗 1. `createurl`
+
+**POST** `/api/v1/shorten`
+
+**Description:**
+Create a shortened URL (with optional custom alias and expiration).
+
+**Parameters (in JSON body):**
+
+```json
+{
+  "api_dev_key": "string",        // Required
+  "original_url": "string",       // Required
+  "custom_alias": "string",       // Optional
+  "user_name": "string",          // Optional
+  "expire_date": "YYYY-MM-DD",    // Optional
+}
+```
+
+**Response:**
+
+* `200 OK` (Success):
+
+```json
+{
+  "short_url": "http://short.ly/abc123"
+}
+```
+
+* `400 Bad Request`: Invalid inputs
+* `409 Conflict`: Custom alias already in use
+* `401 Unauthorized`: Invalid API key
+
+---
+
+### ❌ 2. `deleteurl`
+
+**DELETE** `/api/v1/url/{url_key}`
+
+**Headers / Query:**
+
+* `api_dev_key`: API key for authentication
+
+**Example:**
+`DELETE /api/v1/url/abc123?api_dev_key=XYZ123`
+
+**Response:**
+
+* `200 OK`:
+
+```json
+{
+  "message": "URL Removed"
+}
+```
+
+* `404 Not Found`: URL not found
+* `401 Unauthorized`: Invalid API key
+
+---
+
+### 🔍 3. `resolveurl`
+
+**GET** `/api/v1/url/{url_key}`
+(Redirects to original URL)
+
+**Response:**
+
+* `302 Found`: Redirect to long URL
+* `404 Not Found`: URL expired or doesn’t exist
+
+---
+
+### 📊 4. `analytics`
+
+**GET** `/api/v1/url/{url_key}/stats?api_dev_key=XYZ123`
+
+**Response:**
+
+```json
+{
+  "url_key": "abc123",
+  "original_url": "https://example.com/very/long/url",
+  "redirect_count": 4213,
+  "created_at": "2025-07-10T14:22:00Z",
+  "expire_date": "2025-12-31"
+}
+```
+
+---
+
+## 🧩 Notes
+
+* All APIs should be **rate-limited** based on `api_dev_key`.
+* Use **JWT or API keys** for security and user-specific quotas. JWT(JSON Web Token)
+* Errors should return structured messages with HTTP status codes and explanations.
+
+---
