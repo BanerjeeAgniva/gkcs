@@ -782,4 +782,78 @@ Design a system to generate **short, unique keys** for long URLs (e.g., `http://
 | Append Sequence/User ID  | Ensures uniqueness               | Needs sequence mgmt or auth      |
 | Retry on Failure         | Eventually generates unique keys | Latency in worst-case scenarios  |
 
+---
+
+### b 🔑 Key Generation Service (KGS) - Generating keys offline 
+
+## 📦 Offline Key Generation
+- A **Key Generation Service (KGS)** pre-generates random 6-letter keys.
+- Keys are stored in a **key-DB**.
+- No need to hash or encode URLs.
+- **Avoids duplication/collision** issues at runtime.
+
+---
+
+## ⚠️ Concurrency Handling
+- Risk: Multiple servers might read the **same key** concurrently.
+- **Solution**:
+  - KGS uses two tables:
+    - `unused_keys`
+    - `used_keys`
+  - On key allocation: move from `unused` → `used`.
+  - **KGS loads keys into memory**, marking them used immediately.
+    - If KGS crashes before use: keys wasted (acceptable due to large key pool).
+  - Synchronization or locking required when accessing key memory structure.
+
+---
+
+## 💾 Key-DB Size Estimation
+
+(each key is 6 characters and 1character takes 1byte space) 
+- Using Base64 encoding:
+  - Total unique keys possible = 64⁶ ≈ **68.7 billion**
+- Storage size calculation:
+  - Each key = **6 bytes**
+  - Total storage = 6 × 68.7 billion = **412 GB**
+
+---
+
+## 🧱 Fault Tolerance
+- **KGS is a single point of failure**.
+- Solution: Add a **standby replica** to take over if the primary fails.
+
+---
+
+## ⚡ Caching at App Server
+- App servers can **cache a batch of keys** from key-DB.
+- If a server crashes with unused keys, they’re **lost** (acceptable loss).
+
+---
+
+## 🔍 Key Lookup Process
+- Check if key exists in **main database** or **key-value store**.
+  - If present → return `HTTP 302 Redirect` to original URL.
+  - If absent → return `HTTP 404 Not Found` or redirect to homepage.
+
+---
+
+## ✏️ Custom Alias Size Limit
+- Users can optionally create **custom aliases**.
+- Limit custom keys to **16 characters** for consistency.
+  - Improves storage, indexing, and user experience.
+
+<img width="926" height="372" alt="image" src="https://github.com/user-attachments/assets/c09fdd2d-36fe-4344-bc59-cae68eb16702" />
+
+## 📊 Diagram Flow Explanation
+
+- **Clients** send requests to the **Application Server**, optionally including a **custom alias**.
+
+- The **Application Server** performs the following:
+  - If no custom alias is provided:
+    - Consults the **Key Generation Service (KGS)** to get a new unique key.
+  - Checks the **Key-DB** to:
+    - Ensure key uniqueness (no collisions).
+    - Store the generated or validated key.
+  - Uses the **Main Database** to:
+    - Map the alias (generated or custom) to the original long URL.
 
