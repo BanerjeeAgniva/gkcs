@@ -704,3 +704,82 @@ Create a shortened URL (with optional custom alias and expiration).
 * Errors should return structured messages with HTTP status codes and explanations.
 
 ---
+# 6. Basic System Design and Algorithm (URL Shortener)
+
+## 🎯 Objective
+Design a system to generate **short, unique keys** for long URLs (e.g., `http://tinyurl.com/abc123`).
+
+---
+
+## 🖼️ Diagram Overview
+<img width="1137" height="562" alt="image" src="https://github.com/user-attachments/assets/e71cfae9-3ff7-4744-a074-182a6f96630c" />
+
+# Labeled Steps:
+1. **Client Request**: Client sends a request to shorten a URL.
+2. **Server Encodes URL**: The server passes the URL to the encoding component.
+3. **Encoding**: Encoding logic creates a short key (e.g., via hashing).
+4. **Database Storage**: Encoded short URL is attempted to be inserted into the database.
+5. **Collision Handling**: If a duplicate key exists, append a sequence and retry encoding.
+6. **Insert Result**: Insertion success/failure is returned to the server.
+7. **Response**: Server returns the shortened URL to the client.
+
+---
+
+## 🔐 Key Generation Strategy
+
+### a. Encode Actual URL
+- Compute a **hash** of the original URL using MD5/SHA256.
+- Use **Base64/Base62/Base36** to encode hash into a short string.
+  - **Base62**: `[A-Z, a-z, 0-9]`
+  - **Base64**: Adds `.` and `-`
+- Choose a short key length:
+  - 6 characters → 64⁶ = ~68.7 billion combinations
+  - 8 characters → 64⁸ = ~281 trillion combinations
+
+### 🔁 Key Truncation Strategy
+- Take the first 6 or 8 characters of the encoded string.
+- If collision occurs:
+  - Try different segments of the hash.
+  - Or slightly alter characters.
+
+---
+
+## ⚠️ Issues with Simple Hashing
+
+1. **Duplicate URLs**:
+   - Two users entering the same URL would receive the same shortened key.
+   - This violates the uniqueness requirement for each user submission.
+
+2. **URL-Encoding Conflicts**:
+   - URLs like:
+     - `http://example.com/?id=design`
+     - `http://example.com/%3Fid%3Ddesign`
+   - These are technically equivalent but encoded differently.
+
+---
+
+## ✅ Workarounds
+
+- **Append a sequence number** to each input before hashing:
+  - Ensures uniqueness.
+  - Not stored in DB, just used for generating a unique hash.
+  - Potential drawback: sequence management & overflow risks.
+
+- **Append User ID** (if available):
+  - Generates different keys for same URL across users.
+  - If user is anonymous, ask for a uniqueness key manually.
+
+- **Retry on Collision**:
+  - If a generated key exists in DB, retry encoding with a different suffix or hash variant until success.
+
+---
+
+## 🧠 Design Tradeoffs
+
+| Strategy                 | Pros                            | Cons                            |
+|--------------------------|----------------------------------|----------------------------------|
+| Hashing with Truncation  | Simple, Fast                     | Collision risk                   |
+| Append Sequence/User ID  | Ensures uniqueness               | Needs sequence mgmt or auth      |
+| Retry on Failure         | Eventually generates unique keys | Latency in worst-case scenarios  |
+
+
