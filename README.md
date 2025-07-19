@@ -857,3 +857,43 @@ Design a system to generate **short, unique keys** for long URLs (e.g., `http://
   - Uses the **Main Database** to:
     - Map the alias (generated or custom) to the original long URL.
 
+## 🧩 7. Data Partitioning and Replication
+
+To scale the database and support billions of URLs, we need to partition and replicate the data.
+
+---
+
+### 📘 a. Range-Based Partitioning
+
+- Partition based on the **first letter** of the URL or key.
+  - Example: URLs starting with `A` go to Partition A, `B` to Partition B, etc.
+- Can group less frequent letters together (e.g., `Q`, `X`, `Z`).
+- ✅ **Pros**:
+  - Simple and predictable.
+- ❌ **Cons**:
+  - May lead to **unbalanced partitions**.
+    - Example: Too many URLs starting with `E` → partition overload.
+
+---
+
+### 🔐 b. Hash-Based Partitioning
+
+- Compute a **hash** of the URL or short key.
+- Use the hash to assign the object to a partition:
+  - Example: `hash(key) % 256` → Partition ID between 1–256.
+- ✅ **Pros**:
+  - Better distribution than range-based.
+- ❌ **Cons**:
+  - Still possible to get **hot partitions** (uneven load).
+
+---
+
+### ♻️ Consistent Hashing (Solution to Overload)
+
+- Places **both keys and partitions** on a hash ring.
+- A key is stored in the **next clockwise partition** on the ring.
+- ✅ **Advantages**:
+  - Smooth scaling: Adding/removing partitions only affects nearby keys.
+  - Reduces re-distribution of data.
+  - Helps maintain balanced load.
+
