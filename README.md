@@ -907,6 +907,70 @@ To scale the database and support billions of URLs, we need to partition and rep
   - Reduces re-distribution of data.
   - Helps maintain balanced load.
 
+## 🧠 8. Cache
+
+- Use **Memcache** (or similar) to store hot URLs with their hashes.
+- App servers check cache **before DB** for faster access.
+
+### 🧮 Cache Size
+- Start with **20% of daily traffic**.
+- Need ≈ **170GB RAM** for 20% traffic.
+- Can use **1 large (256GB)** server or **multiple small** ones.
+
+### 🔄 Eviction Policy
+- Use **LRU (Least Recently Used)** policy.
+- Discard URLs least recently accessed.
+- Use **Linked Hash Map** to track access order.
+
+### 📡 Cache Replication
+- Replicate cache to distribute load.
+- On **cache miss**, app server fetches from DB and:
+  - Updates local cache.
+  - Notifies all replicas to update.
+  - Replicas **ignore** if entry already exists.
+
+<img width="891" height="477" alt="image" src="https://github.com/user-attachments/assets/930a597e-4565-4fe2-9300-f81e5c1f6f8a" />
+<img width="1066" height="538" alt="image" src="https://github.com/user-attachments/assets/81efe487-6216-4017-8db2-29ea7e5d0971" />
+
+## 🌐 9. Load Balancer (LB)
+
+### 📍 Where to place LB:
+1. Between **Clients ↔️ App Servers**
+2. Between **App Servers ↔️ Database**
+3. Between **App Servers ↔️ Cache**
+
+### 🔄 Strategy:
+- Start with **Round Robin**:
+  - Distributes requests evenly.
+  - Skips dead servers automatically.
+  - ✅ Simple and low overhead.
+  - ❌ Doesn't consider current server load.
+
+### 🧠 Smarter LB:
+- Query backend for **load info** (CPU, memory, etc.).
+- Dynamically adjust traffic based on server **health/performance**.
+
+<img width="900" height="391" alt="image" src="https://github.com/user-attachments/assets/29027fb0-e749-4c28-b7ee-035a85e0a2ca" />
+
+## 🧹 10. Purging or DB Cleanup
+
+- ❓ Should links expire?
+  - Use **expiration time** (e.g., default: 2 years).
+  - Expired links not returned to users.
+
+### 🐢 Lazy Cleanup Strategy
+- Avoid active scanning (too heavy on DB).
+- Instead:
+  - ⛔ On access to expired link: delete & return error.
+  - 🧽 Run lightweight **Cleanup Service** periodically (during low traffic).
+  - 🗑 Delete from storage and cache.
+
+### ♻️ Reusing Keys
+- After deletion, return keys to **Key-DB** for reuse.
+
+### ⚠️ Inactive Links?
+- Removing unvisited links (e.g., older than 6 months) is tricky.
+- Storage is cheap → may choose to **keep links forever**.
 
 
 ## 📊 11. Telemetry
