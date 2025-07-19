@@ -560,45 +560,55 @@ Shortened: `http://tinyurl.com/jlg8zpc`
 
 ---
 
-## ⚙️ System Estimates (Based on 1M new URLs/month, 1000 bytes per URL entry)
+## 📊 3. Capacity Estimation
 
-### 1. Traffic
+### 📥 Write Load
 
-* **New URLs**: 1M/month ≈ \~0.39 URLs/sec
-* **Redirection requests**: 100x read/write = \~39 URLs/sec
+- **New URLs/month**: 500 million  
+- = 500M / (30 × 24 × 3600) ≈ **200 URLs/sec**
 
-### 2. Storage
+### 📤 Read Load
 
-* Data per URL entry: \~1000 bytes
-* 1M/month × 12 months × 5 years = 60M entries
-* Storage: 60M × 1000B = **60GB**
-
-### 3. Bandwidth
-
-* **Write**: 0.39 req/sec × 1000B = \~390B/sec
-* **Read**: 39 req/sec × 1000B = \~39KB/sec
-
-### 4. Memory (Caching)
-
-* Daily traffic: 39 req/sec × 3600 × 24 = \~3.37M requests/day
-* Cache 20% hot URLs (80-20 rule):
-
-  * Memory: 0.2 × 3.37M × 1000B = **\~675MB**
-
-> Actual memory usage may be lower due to duplicate hits.
+- **Read:Write ratio** = 100:1  
+- = 100 × 200 = **20,000 redirections/sec**
 
 ---
 
-## ✅ Summary Table
+### 💾 Storage Estimation
 
-| Component          | Estimate            |
-| ------------------ | ------------------- |
-| New URLs/sec       | \~0.39              |
-| Redirections/sec   | \~39                |
-| Incoming data/sec  | \~390 B             |
-| Outgoing data/sec  | \~39 KB             |
-| Storage (5 years)  | 60 GB               |
-| Memory (for cache) | \~675 MB (hot URLs) |
+- Store data for 5 years  
+- Total URLs = 500M × 12 × 5 = **30 billion**  
+- Avg size per object ≈ 500 bytes  
+- **Total storage = 30B × 500 bytes = 15 TB**
+
+---
+
+### 📶 Bandwidth Estimation
+
+- **Write (incoming)** = 200 × 500B = **100 KB/sec**
+- **Read (outgoing)** = 20K × 500B = **10 MB/sec**
+
+---
+
+### 🧠 Memory for Caching
+
+- 80/20 rule: 20% of URLs generate 80% of traffic
+- Total daily redirects ≈ 20K × 3600 × 24 = **1.7B/day**
+- Cache 20% = 0.2 × 1.7B × 500 bytes ≈ **170 GB**
+> ⚠️ Duplicate requests reduce actual memory usage
+
+---
+
+## 🧮 Summary
+
+| Metric                  | Estimate                         |
+|-------------------------|----------------------------------|
+| New URLs/sec            | 200                              |
+| URL redirections/sec    | 20,000                           |
+| Incoming bandwidth      | 100 KB/sec                       |
+| Outgoing bandwidth      | 10 MB/sec                        |
+| Storage (5 years)       | 15 TB                            |
+| Cache memory (est.)     | 170 GB (upper bound)             |
 
 ---
 
@@ -897,3 +907,21 @@ To scale the database and support billions of URLs, we need to partition and rep
   - Reduces re-distribution of data.
   - Helps maintain balanced load.
 
+
+
+## 📊 11. Telemetry
+
+- Track usage stats: views, country, timestamp, referrer, browser, platform.
+- Frequent updates to DB row (for popular URLs) can cause write contention.
+- Better approach: asynchronously log events (e.g., message queue or log service) and aggregate later.
+
+---
+
+## 🔐 12. Security and Permissions
+
+- Support private URLs or user-specific access.
+- Store permission level (`public/private`) with each URL.
+- Use separate table:  
+  - **Key**: URL hash / short key  
+  - **Columns**: allowed `UserIDs`
+- Return `HTTP 401` for unauthorized access.
