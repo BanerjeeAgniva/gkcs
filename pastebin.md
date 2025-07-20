@@ -42,3 +42,49 @@ https://pastebin.com/QhTBy7Gw
 - 🔗 **Custom URL limits**: apply length limit for consistency in DB
 - 🆓 Custom URLs are **optional**, not required
 ---
+# 📊 4 Capacity Estimation & Constraints
+## 📈 Traffic Assumptions
+- **Write (New Pastes/day)**: 1M ---> Assumption1
+- **Read:Write Ratio** → 5:1 (R/W)
+## ⏱️ Per Second Estimates
+- **Pastes/sec**:  = 10^6/(24*3600) = ~12 ---> Writes per Sec WPS
+- **Reads/sec**: ~58  ----> WPS*R/W
+
+---
+# 💾4  Storage Estimates
+
+- **Avg Paste Size**: 10KB  ----> ASsumption2 (SizeObj)
+- **Daily Storage**: 1M * 10KB = 10 GB  
+- **10 Years Total**: 36 TB  
+- **Keys (Base64 encoded)**:  
+  - 64⁶ = ~68.7B unique keys  
+  - 3.6B * 6 bytes = ~22 GB  
+- **Data for 10 years**:  
+  `36 TB` (pastes) + `22 GB` (keys) ≈ `36.022 TB`
+- **Target: Use only 70% of total capacity**
+0.7 × Total_Storage = 36.022 TB
+=> Total_Storage = 36.022 / 0.7 ≈ 51.46 TB
+- **70% Capacity Model**: ~51.4 TB (buffered) 
+## 📡 Bandwidth Estimates
+- **Ingress (Writes)**:  
+  - 12 * 10KB = 120 KB/s  ---> WPS * SizeObj
+- **Egress (Reads)**:  
+  - 58 * 10KB = 0.6 MB/s  ---> Ingress * R/W
+
+---
+
+## 🧠 Memory (Cache)
+- **80-20 Rule**: Cache 20% of hot reads  
+- **0.2 * 5M * 10KB** = ~10 GB cache
+
+| **Metric**               | **Estimate**                                    | **Formula / Notes**                          |
+|--------------------------|------------------------------------------------|----------------------------------------------|
+| New Pastes/sec           | 12 WPS                                         | Writes Per Second                            |
+| Read/Write Ratio         | 5:1                                            | Read/Write                                    |
+| Paste Reads/sec          | 58 RPS                                         | RPS = WPS × R/W                              |
+| Size per Paste           | 10 KB                                          | Avg size of pasted text                      |
+| Incoming Bandwidth       | 120 KB/sec                                     | WPS × Size per Paste                         |
+| Outgoing Bandwidth       | 0.6 MB/sec                                     | RPS × Size per Paste                         |
+| Storage (10 years)       | ~36 TB (raw) / ~51.4 TB (with buffer)          | 1M/day × 10KB × 365 × 10 / 0.7 (70% buffer)  |
+| Cache Memory (hot pastes)| ~10 GB/day                                     | 20% × 5M × 10KB                               |
+
