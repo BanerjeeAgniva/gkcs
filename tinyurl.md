@@ -103,9 +103,10 @@ Shortened: `http://tinyurl.com/jlg8zp`
 
 ---
 
-## 📡 **System APIs (RESTful)**
+## 4 📡 **System APIs (RESTful)**
 
 These APIs will be used by developers or internal services to interact with your URL shortening platform.
+> *An API (Application Programming Interface) is a set of rules that allows different software programs to communicate with each other.*
 
 ### 🔗 1. `createurl`
 
@@ -177,6 +178,32 @@ used to, among other things, throttle users based on their allocated quota.*
 * Errors should return structured messages with HTTP status codes and explanations.
 
 ---
+
+## 5 🗃️ Database Design – TinyURL
+
+- **Early DB schema** helps understand data flow and informs partitioning decisions.
+
+### 🔍 Data Characteristics
+- Billions of records expected.
+- Each record is small (<1KB).
+- Minimal relationships (only user → URL).
+- Read-heavy workload.
+
+### 🧱 Schema Design
+<img width="668" height="277" alt="image" src="https://github.com/user-attachments/assets/86045d58-149e-41a7-b719-58333557fa87" />
+
+- **2 Tables**:
+  - `URLs`: Stores short → long URL mappings.
+  - `Users`: Stores user data who created the short URL.
+
+### 🗂️ DB Choice
+- Use **NoSQL key-value store** (e.g., DynamoDB, Cassandra, Riak):
+  - No complex relationships.
+  - Easier to scale horizontally.
+  - Suited for massive volume with simple access patterns.
+
+---
+
 # 6. Basic System Design and Algorithm (URL Shortener)
 
 ## 🎯 Objective
@@ -184,7 +211,7 @@ Design a system to generate **short, unique keys** for long URLs (e.g., `http://
 
 ---
 
-## 🖼️ Diagram Overview
+## 🖼️a. Encoding actual URL 
 <img width="1137" height="562" alt="image" src="https://github.com/user-attachments/assets/e71cfae9-3ff7-4744-a074-182a6f96630c" />
 
 # Labeled Steps:
@@ -361,14 +388,7 @@ To scale the database and support billions of URLs, we need to partition and rep
 
 ---
 
-### ♻️ Consistent Hashing (Solution to Overload)
-
-- Places **both keys and partitions** on a hash ring.
-- A key is stored in the **next clockwise partition** on the ring.
-- ✅ **Advantages**:
-  - Smooth scaling: Adding/removing partitions only affects nearby keys.
-  - Reduces re-distribution of data.
-  - Helps maintain balanced load.
+### ♻️ Consistent Hashing (Solution to Overload) --> [click](https://github.com/BanerjeeAgniva/gkcs/blob/main/4_Consistent_Hashing.md)
 
 ## 🧠 8. Cache
 
@@ -384,6 +404,7 @@ To scale the database and support billions of URLs, we need to partition and rep
 - Use **LRU (Least Recently Used)** policy.
 - Discard URLs least recently accessed.
 - Use **Linked Hash Map** to track access order.
+> *A LinkedHashMap is a special kind of map that remembers the order in which keys were added or accessed. This is useful for building a cache, especially with the LRU (Least Recently Used) policy. In a cache, we want to remove the "least recently used" item when it's full. LinkedHashMap helps with this because it keeps track of the usage order — so we can quickly remove the oldest (least used) item. It works like a mix of a hashmap (fast lookup) and a doubly linked list (to track order).*
 
 ### 📡 Cache Replication
 - Replicate cache to distribute load.
