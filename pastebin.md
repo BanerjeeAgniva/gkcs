@@ -35,3 +35,10 @@ https://pastebin.com/QhTBy7Gw
 ## 🧩 Extended Requirements
 - **Analytics** → track paste views
 - **REST API support** → external programmatic access
+---
+# 📌 3 Pastebin Design Considerations
+- ✅ Similar to URL Shortener but with extra features
+- 📏 **Max paste size**: limit to **10MB** to prevent abuse
+- 🔗 **Custom URL limits**: apply length limit for consistency in DB
+- 🆓 Custom URLs are **optional**, not required
+---
