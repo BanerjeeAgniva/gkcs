@@ -113,24 +113,20 @@ https://pastebin.com/QhTBy7Gw
   - `false` (failure)
 ---
 ## 🗃️ 6 Database Design — Pastebin
-
 ### 📌 Observations
 - Billions of records  
 - Small metadata (<100B)  
 - Medium paste size (few MBs)  
 - No relationships (except user-paste)  
 - Read-heavy workload  
-
 ### 📌 Observations
 - Billions of records  
 - Small metadata (<100B)  
 - Medium paste size (few MBs)  
 - No relationships (except user-paste)  
 - Read-heavy workload
-  
 ### 🧱 Tables Needed
 <img width="912" height="357" alt="image" src="https://github.com/user-attachments/assets/60b59ae9-324c-4549-b1e0-ccd3fcba62e4" />
-
 #### 1. `Pastes`
 - `URLHash` → unique ID (like TinyURL)  
 - `ContentKey` → pointer to content blob (e.g., S3) api_paste_key
@@ -147,3 +143,23 @@ https://pastebin.com/QhTBy7Gw
 - `ContentKey` can point to blob store for large text  
 - Use indexes on `URLHash`, `ExpiresAt`  
 - TTL (Time-To-Live) support or background job for expired pastes
+---
+
+## 🧱 7 High-Level Design - Pastebin
+
+<img width="701" height="388" alt="image" src="https://github.com/user-attachments/assets/873471b5-cc7a-4cc2-a3cd-e8ac0e3019e3" />
+
+### 🔁 Roles of Each Component:
+- **Client** → Sends paste request (text, metadata)
+- **Application Server** → Central brain: handles user requests, stores/reads data
+- **Metadata Storage** → Stores small info like:
+  - `URLHash`
+  - `UserID`
+  - `ExpirationTime`
+  - `PasteName`
+- **Object Storage** (like Amazon S3) → Stores large paste **content** (actual text)
+  
+### 🧩 Why Separate Metadata & Content?
+- **Scalability** → Can scale each layer independently  
+- **Efficiency** → Metadata queries are small & fast  
+- **Cost Optimization** → Object storage is cheap for large files
