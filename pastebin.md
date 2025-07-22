@@ -86,7 +86,7 @@ https://pastebin.com/QhTBy7Gw
 | Storage (10 years)       | ~36 TB (raw) / ~51.4 TB (with buffer)          | 1M/day × 10KB × 365 × 10 / 0.7 (70% buffer)  |
 | Cache Memory (per day)   | ~10 GB/day                                     | 20% × 5M × 10KB                              |
 ---
-## 🧩 System APIs — Pastebin
+## 5 🧩 System APIs — Pastebin
 ### 🔸 addPaste()
 - **Params**:  
   - `api_dev_key` → user auth / quota  
@@ -112,3 +112,38 @@ https://pastebin.com/QhTBy7Gw
   - `true` (success)  
   - `false` (failure)
 ---
+## 🗃️ 6 Database Design — Pastebin
+
+### 📌 Observations
+- Billions of records  
+- Small metadata (<100B)  
+- Medium paste size (few MBs)  
+- No relationships (except user-paste)  
+- Read-heavy workload  
+
+### 📌 Observations
+- Billions of records  
+- Small metadata (<100B)  
+- Medium paste size (few MBs)  
+- No relationships (except user-paste)  
+- Read-heavy workload
+  
+### 🧱 Tables Needed
+<img width="912" height="357" alt="image" src="https://github.com/user-attachments/assets/60b59ae9-324c-4549-b1e0-ccd3fcba62e4" />
+
+#### 1. `Pastes`
+- `URLHash` → unique ID (like TinyURL)  
+- `ContentKey` → pointer to content blob (e.g., S3) api_paste_key
+- `PasteName`  
+- `UserID` (optional)  
+- `CustomAlias` (optional)  
+- `CreatedAt`, `ExpiresAt`  
+- `Views` (for analytics)
+#### 2. `Users`
+- `UserID`  
+- `UserName`  
+- `APIKey`  api_dev_key
+### 💾 Notes
+- `ContentKey` can point to blob store for large text  
+- Use indexes on `URLHash`, `ExpiresAt`  
+- TTL (Time-To-Live) support or background job for expired pastes
