@@ -359,12 +359,9 @@ POST https://api.example.com/userService
 ---
 
 ## 🏷️ What is Metadata?
-
 - **Definition**:  
   *"Metadata is data about data."*
-
 ### 📌 Examples
-
 - In a **Pastebin** system:
   - Actual data → Paste content (e.g., code, text)
   - **Metadata** → Info about the paste:
@@ -374,13 +371,30 @@ POST https://api.example.com/userService
     - `Views`
     - `PasteName`
     - `CustomAlias`
-
 - In an **image**:
   - Actual data → The image pixels
   - Metadata → Resolution, file size, date taken, camera model
 ### ✅ Summary
-
 - Helps manage, search, sort, and process real data  
 - Usually small in size compared to actual content  
 - Stored in database for quick access
 
+---
+## 📚 What is Indexing?
+- **Index** = Data structure (like a shortcut)  
+- Speeds up **searching** in a database table  
+- Works like an **index in a book** → Jump directly to the needed info
+### 🧠 Why Index?
+- Without index → DB scans every row (slow)
+- With index → DB finds data faster (like using a map)
+### 💡 Example:
+- Table: 10 million pastes
+- Query: Find paste with `URLHash = 'abc123'`
+- Without index: Check all 10M rows  
+- With index: Jump directly to the match (very fast)
+### 🔍 Commonly Indexed Fields:
+- Unique IDs like `URLHash`
+- Timestamps like `ExpiresAt`
+- User IDs, email, etc.
+> ✅ Indexing = Faster queries  
+> ❌ Too many indexes = Slower writes (trade-off)
