@@ -50,10 +50,7 @@ https://pastebin.com/QhTBy7Gw
 ## ⏱️ Per Second Estimates
 - **Pastes/sec**:  = 10^6/(24*3600) = ~12 ---> Writes per Sec WPS
 - **Reads/sec**: ~58  ----> WPS*R/W
-
----
-# 💾4  Storage Estimates
-
+##  Storage Estimates
 - **Avg Paste Size**: 10KB  ----> ASsumption3 (SizeObj)
 - **Daily Storage**: 1M * 10KB = 10 GB  
 - **10 Years Total**: 36 TB  
@@ -67,13 +64,13 @@ https://pastebin.com/QhTBy7Gw
 => Total_Storage = 36.022 / 0.7 ≈ 51.46 TB
 - **70% Capacity Model**: ~51.4 TB (buffered) 
 ## 📡 Bandwidth Estimates
+> *📶 **Bandwidth** is the maximum amount of data that can be transferred over a network in a given time. Higher bandwidth means faster data transfer.*
+> *📥 **Ingress** refers to data **coming into** the system (e.g., user uploads).*
+> *📤 **Egress** refers to data **leaving** the system (e.g., user downloads or reads).*
 - **Ingress (Writes)**:  
   - 12 * 10KB = 120 KB/s  ---> WPS * SizeObj
 - **Egress (Reads)**:  
   - 58 * 10KB = 0.6 MB/s  ---> Ingress * R/W
-
----
-
 ## 🧠 Memory (Cache)
 - **80-20 Rule**: Cache 20% of hot reads  
 - **0.2 * 5M * 10KB** = ~10 GB cache
@@ -88,4 +85,30 @@ https://pastebin.com/QhTBy7Gw
 | Egress                   | 0.6 MB/sec                                     | RPS × Size per Paste                         |
 | Storage (10 years)       | ~36 TB (raw) / ~51.4 TB (with buffer)          | 1M/day × 10KB × 365 × 10 / 0.7 (70% buffer)  |
 | Cache Memory (per day)   | ~10 GB/day                                     | 20% × 5M × 10KB                              |
-
+---
+## 🧩 System APIs — Pastebin
+### 🔸 addPaste()
+- **Params**:  
+  - `api_dev_key` → user auth / quota  
+  - `paste_data` → text content  
+  - `custom_url` → optional alias  
+  - `user_name` → optional for vanity URLs  
+  - `paste_name` → optional  
+  - `expire_date` → optional expiry  
+- **Returns**:  
+  - URL (success)  
+  - error code (failure)
+### 🔸 getPaste()
+- **Params**:  
+  - `api_dev_key`  
+  - `api_paste_key` → unique ID for the paste 
+- **Returns**:  
+  - paste text
+### 🔸 deletePaste()
+- **Params**:  
+  - `api_dev_key`  
+  - `api_paste_key`  
+- **Returns**:  
+  - `true` (success)  
+  - `false` (failure)
+---
