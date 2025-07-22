@@ -163,3 +163,66 @@ https://pastebin.com/QhTBy7Gw
 - **Scalability** → Can scale each layer independently  
 - **Efficiency** → Metadata queries are small & fast  
 - **Cost Optimization** → Object storage is cheap for large files
+---
+## 🧩8 Component Design — Pastebin
+
+<img width="640" height="405" alt="image" src="https://github.com/user-attachments/assets/ecb7e157-f4bf-48bf-adf1-7f9b049bccc1" />
+
+### ⚙️ a. Application Layer
+
+- **Handles:** All incoming write/read requests.
+- **Key Generation:**
+  - Random 6-character key (Base64).
+  - Retry on key collision.
+  - OR use **Key Generation Service (KGS)**:
+    - Pre-generates keys.
+    - Stores in **key-DB**.
+    - Moves keys to "used" table after assignment.
+    - Keeps keys in memory for faster access.
+- **Failure Handling:**
+  - Custom key conflict → return error.
+  - **KGS fallback**: use a standby KGS server.
+  - App servers can cache keys → small key loss acceptable (huge keyspace: 68B).
+    
+### 📥 Handling Write Requests
+
+1. Client → Application Server
+2. Key generated via KGS
+3. Store:
+   - **Metadata** → Metadata storage
+   - **Content** → Object storage
+4. Return generated URL/key to user
+
+### 📤 Handling Read Requests
+
+1. Client requests paste using URL/key
+2. Application server:
+   - Looks up **Metadata DB**
+   - Fetches paste content from **Object storage**
+   - Returns content to user
+
+### 🗃️ b. Datastore Layer
+
+1. **Metadata Storage**  
+   - Stores: URL, expiration, user info, etc.
+   - Type: SQL (MySQL) or NoSQL (Cassandra, DynamoDB)
+
+2. **Object Storage**  
+   - Stores: actual paste content
+   - Type: S3, or any scalable object store
+
+### 🧠 Additional Components
+
+| Component         | Purpose                              |
+|------------------|--------------------------------------|
+| Load Balancers   | Distribute incoming traffic          |
+| KGS              | Generates and manages unique keys    |
+| key-DB           | Stores available + used keys         |
+| Metadata Cache   | Fast access to paste metadata        |
+| Block Cache      | Fast access to paste content         |
+| Cleanup Service  | Deletes expired pastes from storage  |
+
+---
+
+Refer to 7. Data Partitioning and Replication 8. Cache 9. Load Balancer (LB) 10. Purging or DB Cleanup 11. Telemetry 12. Security and Permissions from 
+[tinyurl](https://github.com/BanerjeeAgniva/gkcs/blob/main/tinyurl.md)
