@@ -119,26 +119,17 @@ https://pastebin.com/QhTBy7Gw
 - Medium paste size (few MBs)  
 - No relationships (except user-paste)  
 - Read-heavy workload  
-### 📌 Observations
-- Billions of records  
-- Small metadata (<100B)  
-- Medium paste size (few MBs)  
-- No relationships (except user-paste)  
-- Read-heavy workload
 ### 🧱 Tables Needed
 <img width="912" height="357" alt="image" src="https://github.com/user-attachments/assets/60b59ae9-324c-4549-b1e0-ccd3fcba62e4" />
+
 #### 1. `Pastes`
 - `URLHash` → unique ID (like TinyURL)  
 - `ContentKey` → pointer to content blob (e.g., S3) api_paste_key
-- `PasteName`  
 - `UserID` (optional)  
-- `CustomAlias` (optional)  
 - `CreatedAt`, `ExpiresAt`  
-- `Views` (for analytics)
 #### 2. `Users`
 - `UserID`  
 - `UserName`  
-- `APIKey`  api_dev_key
 ### 💾 Notes
 - `ContentKey` can point to blob store for large text  
 - Use indexes on `URLHash`, `ExpiresAt`  
