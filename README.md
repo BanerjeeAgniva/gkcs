@@ -398,3 +398,76 @@ POST https://api.example.com/userService
 - User IDs, email, etc.
 > ✅ Indexing = Faster queries  
 > ❌ Too many indexes = Slower writes (trade-off)
+---
+## 🧱 Storage Options (with Examples)
+### 📁 1. HDFS (Hadoop Distributed File System)
+> **Example:** Instagram stores millions of images. Instead of keeping them on one server, HDFS splits and distributes them across many machines.
+
+- Distributed file system used to store **huge files** reliably
+- Splits large files into **blocks**, stores them across nodes
+- **Fault-tolerant**: if one node dies, data is still available from others
+- Best for **batch processing** and **big data workloads**
+>Batch processing is a way of processing large volumes of data all at once, typically at scheduled times or in groups ("batches"), rather than processing each data item individually and immediately.
+>Imagine Instagram wants to:
+Generate weekly analytics reports on the most liked photos
+Process 100,000 uploaded photos at night to organize them by category
+Instead of doing this in real-time (every second), Instagram runs a batch job at 2 AM that processes all the data together.
+
+### ☁️ 2. Amazon S3 (Simple Storage Service)
+> **Example:** When a user uploads a photo, it’s saved in a storage bucket on AWS S3 and can be downloaded via a link.
+
+- Cloud-based **object storage** service by Amazon
+- Stores **any kind of file** (image, video, document)
+- Each file stored as an **object** in a **bucket**
+- Supports:
+  - High durability and availability
+  - Permissions, versioning, encryption
+- Can **scale infinitely**
+  
+```yaml
+Bucket: instagram-user-uploads
+Object:
+  - File: sunset.jpg
+  - Metadata:
+      - uploaded_by: Agniva_9383
+      - location: Goa
+      - timestamp: 2025-07-27 18:35
+```
+### 🧩 3. Cassandra (Wide-Column NoSQL Database)
+> **Example:** To get all photos posted by a user or all followers of a user, we store data like:
+> - Key = `UserID`
+> - Value = list of `PhotoIDs` or `FollowedUserIDs`
+
+- NoSQL database designed for **high write throughput**
+- Data organized as **rows with flexible columns** (not fixed schema)
+- Excellent for use cases with **heavy reads/writes**, like:
+  - Social graphs
+  - Time-series data
+- **Replicates data** across nodes to prevent data loss
+- Deletes are **eventual** (soft-delete first, then removed)
+
+#### Cassandra Example: Flexible Columns
+
+Cassandra organizes data as **rows** in **tables**, but each row can have a different number of columns.
+
+### 👤 Table: UserPhotos
+
+| UserID    | PhotoID_1 | PhotoID_2 | PhotoID_3 |
+|-----------|-----------|-----------|-----------|
+| agniva938 | img101    | img102    | img103    |
+| ria2025   | img201    | img202    |           |
+| zed_x     | img301    |           |           |
+
+- **UserID** is the row key.
+- Each row stores photo IDs as **flexible columns**.
+- Ria only has 2 photos, Zed has 1 — this is allowed.
+
+> ✅ No need for every row to have the same number of columns. Cassandra handles sparse data efficiently.
+
+### ✅ Summary
+
+| Storage Type | Use Case Example                     | Best For                            |
+|--------------|--------------------------------------|-------------------------------------|
+| HDFS         | Large-scale distributed photo backup | Big data batch processing           |
+| Amazon S3    | Storing individual user-uploaded pics| Durable, scalable file storage      |
+| Cassandra    | Relationships & metadata             | High-speed access to user data/maps |
