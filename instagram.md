@@ -61,3 +61,39 @@
 1. Client ➝ Upload ➝ Image Hosting ➝ [Image Storage + Metadata]
 2. Client ➝ View/Search ➝ Image Hosting ➝ Metadata ➝ Serve Image
 ---
+## 🗄️ 5 Database Schema
+### 📸 Tables
+<img width="918" height="337" alt="image" src="https://github.com/user-attachments/assets/95080b77-ea13-4cd7-af5b-5ec43772aec2" />
+
+- **Photo**
+  - Stores: photo location, user, timestamps, coordinates
+  - Index: `PhotoID`, `CreationDate` (fetch recent photos fast)
+- **User**
+  - Basic user profile info
+- **UserFollow**
+  - Follows graph: (UserID1 → follows → UserID2)
+### 🛠️ RDBMS vs NoSQL
+- Use **RDBMS (e.g. MySQL)** when you need joins
+- Use **NoSQL (e.g. Cassandra)** for **scalability**, high availability, and wide-column storage
+### 🗃Storage Options
+#### 📂 HDFS (Hadoop Distributed File System)
+- Distributed storage system for big data
+- Stores large files across multiple machines
+- Fault-tolerant and scalable
+#### ☁️ Amazon S3
+- Object storage service by AWS
+- Stores files (like images) with high durability
+- Access via HTTP; supports versioning, permissions
+### 🧩 Cassandra (Wide-Column NoSQL DB)
+- Highly available, distributed DB
+- Data stored in **rows and dynamic columns**
+- Suitable for:
+  - UserPhoto table: `Key = UserID`, `Value = list of PhotoIDs`
+  - UserFollow table: `Key = UserID`, `Value = list of followed UserIDs`
+- **Replicas** for reliability
+- Deletes are **eventual**: data is retained temporarily before permanent removal
+### ✅ Summary
+- Use **object storage** (S3, HDFS) for photo files
+- Use **metadata DB** (SQL/NoSQL) for search, feed, relationships
+- Choose **Cassandra** for mapping
+---
