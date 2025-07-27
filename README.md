@@ -412,6 +412,8 @@ POST https://api.example.com/userService
 Generate weekly analytics reports on the most liked photos
 Process 100,000 uploaded photos at night to organize them by category
 Instead of doing this in real-time (every second), Instagram runs a batch job at 2 AM that processes all the data together.
+>
+> Fun Fact: Why is it called Hadoop? Hadoop is an Open-source framework for big data processing. 
 
 ### ☁️ 2. Amazon S3 (Simple Storage Service)
 > **Example:** When a user uploads a photo, it’s saved in a storage bucket on AWS S3 and can be downloaded via a link.
