@@ -189,3 +189,105 @@ Assuming each “int” and “dateTime” is 4 bytes
 - Enables **scalability** and **fault tolerance**.
 > A well-designed photo-sharing system like Instagram must expect failures and build in enough backup and failover to stay online no matter what.
 ---
+## 10🧩 Data Sharding – Instagram 
+To manage huge volumes of metadata (e.g. photos, users), we **shard** the data — i.e., split it across multiple database servers.
+If one DB shard is 1TB, we will need four shards to store 3.7TB of data. Let’s assume for better performance and 
+scalability we keep 10 shards. 
+### 🔹 a. Sharding by UserID
+- **Logic**: Store all photos of a user on the same shard using:
+ShardID = UserID % 10
+- **PhotoID**: Append ShardID to a local auto-increment ID for uniqueness.
+- Example: `UserID: 9383 → Shard 3`
+- PhotoID on Shard 3: `12345 → "3_12345"`
+#### ❗ Problems:
+1. **Hot users** → popular users overload a shard.
+2. **Uneven distribution** → some users upload many photos.
+3. **Shard limits** → can’t store all user data on one shard forever.
+4. **Single point risk** → if shard fails, all user’s photos are unavailable.
+### 🔸 b. Sharding by PhotoID
+- **Logic**: Generate a global unique PhotoID first, then:
+ShardID = PhotoID % 10
+- **ID Generation**:
+- Use a dedicated ID Generator DB. ---> for example generates 38457 for a photo
+- Example: 
+  - Insert into a simple `PhotoID` table with `BIGINT` (64-bit).
+  - Get `PhotoID = 38457 → Shard 7`
+#### ✅ Benefits:
+- Even data spread.
+- Avoids hot shard due to single user.
+#### ❗ Trade-off:
+- **Key generator DB** is a single point of failure.
+### 🛠️ Reliability Fix:
+- Use **two ID generators**:
+- One gives even IDs, another gives odd IDs.
+- Example: `PhotoID: 1002 (even) from DB1`, `1003 (odd) from DB2`
+- Add a **load balancer** to round-robin between generators.
+### 📈 Planning for Scale
+- Use **logical partitions** upfront (e.g., 1000 shards).
+- Map these to **physical DBs** initially (e.g., 10 per DB).
+- Maintain a **config file or mapping DB**:
+- When a server is full, update config to move partitions.
+  ### 📈 Planning for Scale (Explained with Example)
+To handle future growth without major re-engineering, we **plan for scale from the start** by logically splitting data and allowing flexible mapping.
+#### 🔹 Use **logical partitions** upfront  
+Even if we don’t need hundreds of database shards right now, we divide our data into, say, **1000 logical partitions (or shards)**. These are just virtual divisions that help with organizing and routing data.
+🧠 **Why?**  
+- Makes future scaling easier  
+- Avoids expensive re-sharding later
+🔢 **Example**:  
+Let’s say `PhotoID = 348922`.  
+Then:  
+Partition = PhotoID % 1000 = 922
+So, this photo belongs to logical **Partition 922**.
+#### 🔹 Map logical partitions to **physical databases**
+Initially, we don’t need 1000 physical databases. We can start with 10 servers and assign **100 logical partitions per server**.
+📦 **Example**:
+```yaml
+DB-0: Partitions 0–99
+DB-1: Partitions 100–199
+...
+DB-9: Partitions 900–999
+```
+So, Partition 922 (from the previous example) would go to **DB-9**.
+#### 🔹 Maintain a **config file or mapping database**
+We keep a centralized configuration that maps each **logical partition to a physical database**.
+📄 **Example (YAML-style config):**
+```yaml
+partition_map:
+  0-99: db0.company.com
+  100-199: db1.company.com
+  ...
+  900-999: db9.company.com
+```
+When a request comes in, the system:
+Computes the partition (PhotoID % 1000)
+Looks up which DB to hit using this map
+🔹 When a server is full, update the config
+If a database server (e.g., DB-9) becomes too full or overloaded, we can move some partitions (e.g., 900–949) to a new server (e.g., DB-10), and simply update the config.
+📥 Before:
+```yaml
+900-999: db9.company.com
+```
+📤 After:
+```yaml
+900-949: db10.company.com
+950-999: db9.company.com
+```
+✅ No change needed in application logic.
+🚀 Just update the config and restart services if needed.
+
+✅ Advantages
+1.Efficient and scalable from the start
+2.Easy to migrate data gradually
+3.Load balancing across DBs
+4.No hard downtime for re-partitioning
+
+### ✅ Summary
+
+| Sharding Method     | Pros                          | Cons                                |
+|---------------------|-------------------------------|-------------------------------------|
+| By UserID           | Easy grouping per user        | Hot users, uneven load              |
+| By PhotoID          | Balanced distribution         | Needs reliable ID generation        |
+| Logical Partitions  | Easy to scale/migrate shards  | Needs mapping logic/config system   |
+
+---
