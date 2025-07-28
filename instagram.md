@@ -219,6 +219,8 @@ ShardID = PhotoID % 10
 - **Key generator DB** is a single point of failure.
 ### 🛠️ Reliability Fix:
 - Use **two ID generators**:
+  <img width="273" height="166" alt="image" src="https://github.com/user-attachments/assets/138ca158-9af1-4135-99e9-7a7ce26334b4" />
+
 - One gives even IDs, another gives odd IDs.
 - Example: `PhotoID: 1002 (even) from DB1`, `1003 (odd) from DB2`
 - Add a **load balancer** to round-robin between generators.
