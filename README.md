@@ -529,3 +529,125 @@ So with **long polling**, Agniva’s feed stays fresh, the servers stay calm, an
 Everybody wins. 🍬
 
 ---
+# 📷 Instagram System Design – Summary with Keywords
+
+## 📌 1. Purpose & Features
+
+- **Photo sharing** platform
+- Users can **upload**, **view**, **follow**, and see a **news feed**
+- Core Features:
+  - Upload photo
+  - View/search photo
+  - Follow user
+  - View news feed from followed users
+
+## 📊 2. Assumptions & Capacity
+
+- **Total Users**: 500M
+- **Daily Active Users**: 1M
+- **Photos/day**: 2M ➝ ≈23 photos/sec
+- **Avg Photo Size**: 200KB
+
+## 🗃️ 3. Storage Needs (10 Years)
+
+| Component       | Storage Estimate |
+|----------------|------------------|
+| Users          | ~32 GB           |
+| Photos         | ~1.88 TB         |
+| Follows        | ~1.82 TB         |
+| **Total**      | **~3.7 TB**      |
+
+## 🧱 4. Architecture Overview
+
+**Components**:
+- **Image Hosting Service**: Handles upload/view/search
+- **Object Storage** (e.g., **S3**, **HDFS**): Stores image files
+- **Metadata DB** (e.g., **Cassandra**, **MySQL**): Stores photo info
+
+## 📦 5. Database Schema (Key Tables)
+
+- `User`: Basic info (UserID, name, email)
+- `Photo`: Info + storage path
+- `UserFollow`: Follower-followee relationships
+- Use **NoSQL (Cassandra)** for scalability and availability
+
+## 🔁 6. Write-Read Separation
+
+- Separate:
+  - **Upload Service** (writes)
+  - **Download Service** (reads)
+- Prevents write-heavy loads from slowing reads
+
+## ✅ 7. Reliability Techniques
+
+- **Replication**: Image + metadata stored in multiple places
+- **Failover instances**: Redundant services
+- **Backups**: Prevent metadata loss
+
+## 🧩 8. Sharding Strategies
+
+- **By UserID**: Easy, but hot users overload shards
+- **By PhotoID**: Better load balancing
+- **Logical Partitions**:
+  - 1000 virtual shards
+  - Map to physical DBs (via config file)
+  - Easy to rebalance
+
+## 📰 9. News Feed Generation
+
+**Naive Flow**:
+- Query latest photos of all followees  
+- Rank + show top N photos
+
+**Optimized**:
+- **Pre-generate feed** in background  
+- Store in `UserNewsFeed` table for fast access
+
+## 🔄 10. Push vs Pull
+
+- **Pull Model**: User asks for updates manually
+- **Push Model**: Server notifies via long-polling
+- **Hybrid**: Push to celebs, Pull for heavy-follow users
+
+## 📡 11. Long Polling
+
+> Technique to simulate **real-time updates** without flooding server.
+
+**How it works**:
+1. Client sends a request
+2. Server holds it open
+3. Sends data when ready
+4. Client sends new request immediately
+
+**Benefits**:
+- Efficient real-time
+- Reduces unnecessary requests
+
+## 🔢 12. Smart PhotoID Design
+
+**PhotoID = [Epoch Timestamp (31 bits) | Sequence (9 bits)]**
+
+- **Epoch Time**: Helps sort by recency (valid for 50 years)
+- **Sequence Number (0–511)**: Allows 512 uploads/second
+- **Enables efficient feed generation + sharding**
+
+## ⚡ 13. Caching & Delivery
+
+- **CDN**: Serve image content globally
+- **Memcache**: Store hot metadata (recent photos, popular users)
+- **Eviction Policy**: **LRU** (Least Recently Used)
+- **80/20 Rule**: 20% of photos handle 80% of reads
+
+## ✅ Design Goals Met
+
+- **Scalable**
+- **Highly available**
+- **Low latency (<200ms)**
+- **Eventually consistent**
+- **Reliable (no data loss)**
+
+## 🧠 Keywords
+
+`Object Storage`, `Cassandra`, `Memcache`, `CDN`, `Sharding`, `Replication`, `Long Polling`, `PhotoID`, `Push vs Pull`, `LRU`, `Feed Pre-generation`, `Logical Partition`, `Write-Read Separation`, `Follower Graph`, `UserNewsFeed`, `Sequence Number`, `Epoch Time`, `Hot Users`, `Metadata`, `HDFS`, `S3`
+
+---
