@@ -352,3 +352,235 @@ If a database server (e.g., DB-9) becomes too full or overloaded, we can move so
 - Saves unnecessary requests when there's no update
 
 ---
+
+## 12 🧃 News Feed Creation with Sharded Data
+
+To show users the **latest photos**, we need to **sort by creation time** efficiently.
+
+### 🆔 Smart PhotoID Design
+
+We design the `PhotoID` as:
+[ Epoch Time (31 bits) | Sequence Number (9 bits) ]
+
+#### 🕓 Why Epoch Time?
+
+- It represents the **creation time in seconds**.
+- With 31 bits, we can store:
+  > `86400 sec/day * 365 * 50 years = ~1.6B seconds`  
+  > ✅ Enough for **50 years**
+
+#### 🔢 Why Sequence Number?
+
+- To support **multiple photos/second**
+- Since on the average, we are expecting 23 new photos per second; we can allocate 9 bits to store auto incremented sequence. So every second we can store (2^9 => 512) new photos.
+- 
+- `9 bits → 2^9 = 512` → can store **up to 512 photos/second**
+- Reset this counter **every second**
+### 🧪 Example
+
+Suppose:
+- Current epoch time: `1722450000`  
+- Sequence number this second: `48`
+
+Then:
+- `PhotoID = 1722450000_048`
+
+We store this photo on shard:
+
+ShardID = PhotoID % 10
+= 172245000048 % 10
+= 8
+
+✅ Efficient retrieval using index on `PhotoID` → we always get **most recent photos** fast.
+
+### 📦 Summary
+
+| Part              | Bits | Purpose                         |
+|-------------------|------|----------------------------------|
+| Epoch Timestamp   | 31   | Sort photos by recency          |
+| Sequence Counter  | 9    | Allow 512 photos per second     |
+
+This structure makes **news feed generation fast and scalable**.
+
+---
+
+## ⚡ 13. Cache and Load Balancing
+
+### 🌍 Global Delivery with CDNs
+- Use **Content Delivery Networks (CDNs)** and **geo-distributed cache servers**.
+- Push photo content **closer to users** to reduce latency and bandwidth costs.
+
+### 🗂️ Metadata Caching
+- Use **Memcache** to store frequently accessed DB rows (hot data).
+- **App Servers** check cache **before querying the DB**.
+- Use **LRU (Least Recently Used)** as a cache eviction policy:
+  > Removes the data that hasn't been used recently.
+
+### 🧠 Smarter Caching – The 80/20 Rule
+- 20% of photos generate **80% of read traffic**.
+- Focus on caching this **top 20%** to serve most requests quickly.
+- Improves performance while saving cache space.
+
+### ✅ Summary
+- CDN for photo delivery 🌐  
+- Memcache for metadata caching 💾  
+- LRU for eviction 🔁  
+- Cache hot photos using access patterns 🔥  
+
+---
+---
+---
+
+# 📷 Instagram System Design – Summary with Keywords
+
+---
+
+## 📌 1. Purpose & Features
+
+- **Photo sharing** platform
+- Users can **upload**, **view**, **follow**, and see a **news feed**
+- Core Features:
+  - Upload photo
+  - View/search photo
+  - Follow user
+  - View news feed from followed users
+
+---
+
+## 📊 2. Assumptions & Capacity
+
+- **Total Users**: 500M
+- **Daily Active Users**: 1M
+- **Photos/day**: 2M ➝ ≈23 photos/sec
+- **Avg Photo Size**: 200KB
+
+---
+
+## 🗃️ 3. Storage Needs (10 Years)
+
+| Component       | Storage Estimate |
+|----------------|------------------|
+| Users          | ~32 GB           |
+| Photos         | ~1.88 TB         |
+| Follows        | ~1.82 TB         |
+| **Total**      | **~3.7 TB**      |
+
+---
+
+## 🧱 4. Architecture Overview
+
+**Components**:
+- **Image Hosting Service**: Handles upload/view/search
+- **Object Storage** (e.g., **S3**, **HDFS**): Stores image files
+- **Metadata DB** (e.g., **Cassandra**, **MySQL**): Stores photo info
+
+---
+
+## 📦 5. Database Schema (Key Tables)
+
+- `User`: Basic info (UserID, name, email)
+- `Photo`: Info + storage path
+- `UserFollow`: Follower-followee relationships
+- Use **NoSQL (Cassandra)** for scalability and availability
+
+---
+
+## 🔁 6. Write-Read Separation
+
+- Separate:
+  - **Upload Service** (writes)
+  - **Download Service** (reads)
+- Prevents write-heavy loads from slowing reads
+
+---
+
+## ✅ 7. Reliability Techniques
+
+- **Replication**: Image + metadata stored in multiple places
+- **Failover instances**: Redundant services
+- **Backups**: Prevent metadata loss
+
+---
+
+## 🧩 8. Sharding Strategies
+
+- **By UserID**: Easy, but hot users overload shards
+- **By PhotoID**: Better load balancing
+- **Logical Partitions**:
+  - 1000 virtual shards
+  - Map to physical DBs (via config file)
+  - Easy to rebalance
+
+---
+
+## 📰 9. News Feed Generation
+
+**Naive Flow**:
+- Query latest photos of all followees  
+- Rank + show top N photos
+
+**Optimized**:
+- **Pre-generate feed** in background  
+- Store in `UserNewsFeed` table for fast access
+
+---
+
+## 🔄 10. Push vs Pull
+
+- **Pull Model**: User asks for updates manually
+- **Push Model**: Server notifies via long-polling
+- **Hybrid**: Push to celebs, Pull for heavy-follow users
+
+---
+
+## 📡 11. Long Polling
+
+> Technique to simulate **real-time updates** without flooding server.
+
+**How it works**:
+1. Client sends a request
+2. Server holds it open
+3. Sends data when ready
+4. Client sends new request immediately
+
+**Benefits**:
+- Efficient real-time
+- Reduces unnecessary requests
+
+---
+
+## 🔢 12. Smart PhotoID Design
+
+**PhotoID = [Epoch Timestamp (31 bits) | Sequence (9 bits)]**
+
+- **Epoch Time**: Helps sort by recency (valid for 50 years)
+- **Sequence Number (0–511)**: Allows 512 uploads/second
+- **Enables efficient feed generation + sharding**
+
+---
+
+## ⚡ 13. Caching & Delivery
+
+- **CDN**: Serve image content globally
+- **Memcache**: Store hot metadata (recent photos, popular users)
+- **Eviction Policy**: **LRU** (Least Recently Used)
+- **80/20 Rule**: 20% of photos handle 80% of reads
+
+---
+
+## ✅ Design Goals Met
+
+- **Scalable**
+- **Highly available**
+- **Low latency (<200ms)**
+- **Eventually consistent**
+- **Reliable (no data loss)**
+
+---
+
+## 🧠 Keywords
+
+`Object Storage`, `Cassandra`, `Memcache`, `CDN`, `Sharding`, `Replication`, `Long Polling`, `PhotoID`, `Push vs Pull`, `LRU`, `Feed Pre-generation`, `Logical Partition`, `Write-Read Separation`, `Follower Graph`, `UserNewsFeed`, `Sequence Number`, `Epoch Time`, `Hot Users`, `Metadata`, `HDFS`, `S3`
+
+---
+
