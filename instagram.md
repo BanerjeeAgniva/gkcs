@@ -293,3 +293,62 @@ If a database server (e.g., DB-9) becomes too full or overloaded, we can move so
 | Logical Partitions  | Easy to scale/migrate shards  | Needs mapping logic/config system   |
 
 ---
+
+## 11 News Feed Generation
+### 🔹 Basic Flow
+1. **User logs in** → App Server fetches people the user follows.
+2. For each followee → fetch their latest 100 photos (metadata).
+3. All photos → passed to **ranking algorithm** (recency, likes, etc.).
+4. Top 100 ranked photos → shown in News Feed.
+### ⚠️ Problem
+- Querying many tables + sorting/ranking = **high latency**.
+### ✅ Solution: Pre-generate News Feed
+- Use **dedicated servers** to constantly compute News Feed in advance.
+- Store in a `UserNewsFeed` table.
+- On request → just query and return result.
+**Flow**:
+- Server checks `UserNewsFeed` for last update.
+- Pulls new photos from followees after that time.
+- Re-runs ranking and updates table.
+## 📤 Push vs Pull Models
+### 1. Pull Model
+> Client manually/periodically asks server for updates.
+> 
+**Pros**:
+- Simple
+- Scales well
+  
+**Cons**:
+- User may miss timely updates
+- Many empty responses
+### 2. Push Model
+> Server sends updates to clients as soon as data changes.
+> 
+> To efficiently manage this, users have to maintain a Long Poll request with the server for receiving the updates.
+> 
+**Pros**:
+- Real-time experience
+  
+**Cons**:
+- Too many pushes for users with many followees (or celebrities with many followers ---> their posts need to be pushed to followers)
+### 3. Hybrid Model
+> Use **Push** for users who follow relatively less number of people (celebrities with millions following but follow less people)  
+> Use **Pull** for users who follow many people
+> 
+**Variation**: Push only every few minutes; rest of time → Pull
+
+## 🔁 What is Long Polling?
+
+> Long polling is a way for clients to wait for data **without constantly retrying**.
+
+**How it works**:
+- Client sends a request →  
+- Server **holds the request open** until it has data →  
+- When data is ready → sends it back →  
+- Client immediately sends next request
+
+**Benefits**:
+- Near real-time without overwhelming the server
+- Saves unnecessary requests when there's no update
+
+---
