@@ -473,3 +473,59 @@ Cassandra organizes data as **rows** in **tables**, but each row can have a diff
 | HDFS         | Large-scale distributed photo backup | Big data batch processing           |
 | Amazon S3    | Storing individual user-uploaded pics| Durable, scalable file storage      |
 | Cassandra    | Relationships & metadata             | High-speed access to user data/maps |
+
+---
+
+## 🤳 What is Long Polling? — An Instagram Tale
+
+Meet **Agniva**, an avid Instagram user. Every time his favorite creator *“_KajuKatli_Queen_420_”* posts, Agniva *must* see it within 3 seconds. “No delay,” he says, “or the vibe is gone.” ⚡
+### 🛑 The Problem: Too Many Checks
+
+At first, Agniva wrote a little bot (don’t tell Insta) that **kept asking the server every second**:
+
+> “Hey Instagram, did she post?”  
+> “Nope.”  
+> “Hey Instagram, now?”  
+> “Still nope.”  
+> “How about now?”  
+> “NO, Agniva. PLEASE.”
+
+This is called **polling** — the client *keeps checking* for updates, like an annoying kid in a car:  
+> “Are we there yet?” x1000
+
+### ✅ Enter Long Polling: Chill, Agniva
+
+Now, Agniva uses **long polling**.
+
+Instead of asking repeatedly, he sends **one polite request**:
+
+> 🧘 “Hey Insta, let me know when *KajuKatli_Queen_420_* posts something. I’ll wait.”
+
+Instagram says:
+
+> “Sure. I’ll hold on to your request. You just relax.”
+
+⏳ 15 seconds later...  
+BOOM 💥 — a new post about Kaju Samosas.
+
+Instagram responds:
+
+> “Here it is, Agniva!”  
+> 🥳 Agniva rejoices, likes, and comments "first 🔥"
+
+And right after, he sends another request to wait for the **next** update. This cycle continues peacefully.
+
+### ⚙️ Summary
+
+| Term            | Meaning |
+|-----------------|---------|
+| **Client**      | Agniva’s app/browser |
+| **Long Poll**   | Server *waits* to reply until there’s something to send |
+| **Regular Poll**| Repeatedly asks “anything new?” |
+| **Benefit**     | Real-time-ish updates without hammering the server
+
+So with **long polling**, Agniva’s feed stays fresh, the servers stay calm, and *KajuKatli_Queen_420_* gets her rightful likes.
+
+Everybody wins. 🍬
+
+---
