@@ -398,3 +398,256 @@ POST https://api.example.com/userService
 - User IDs, email, etc.
 > ✅ Indexing = Faster queries  
 > ❌ Too many indexes = Slower writes (trade-off)
+---
+## 🧱 Storage Options (with Examples)
+### 📁 1. HDFS (Hadoop Distributed File System)
+> **Example:** Instagram stores millions of images. Instead of keeping them on one server, HDFS splits and distributes them across many machines.
+
+- Distributed file system used to store **huge files** reliably
+- Splits large files into **blocks**, stores them across nodes
+- **Fault-tolerant**: if one node dies, data is still available from others
+- Best for **batch processing** and **big data workloads**
+>Batch processing is a way of processing large volumes of data all at once, typically at scheduled times or in groups ("batches"), rather than processing each data item individually and immediately.
+>Imagine Instagram wants to:
+Generate weekly analytics reports on the most liked photos
+Process 100,000 uploaded photos at night to organize them by category
+Instead of doing this in real-time (every second), Instagram runs a batch job at 2 AM that processes all the data together.
+>
+> Fun Fact: Why is it called Hadoop? Hadoop is an Open-source framework for big data processing. 
+
+### ☁️ 2. Amazon S3 (Simple Storage Service)
+> **Example:** When a user uploads a photo, it’s saved in a storage bucket on AWS S3 and can be downloaded via a link.
+
+- Cloud-based **object storage** service by Amazon
+- Stores **any kind of file** (image, video, document)
+- Each file stored as an **object** in a **bucket**
+- Supports:
+  - High durability and availability
+  - Permissions, versioning, encryption
+- Can **scale infinitely**
+  
+```yaml
+Bucket: instagram-user-uploads
+Object:
+  - File: sunset.jpg
+  - Metadata:
+      - uploaded_by: Agniva_9383
+      - location: Goa
+      - timestamp: 2025-07-27 18:35
+```
+### 🧩 3. Cassandra (Wide-Column NoSQL Database)
+> **Example:** To get all photos posted by a user or all followers of a user, we store data like:
+> - Key = `UserID`
+> - Value = list of `PhotoIDs` or `FollowedUserIDs`
+
+- NoSQL database designed for **high write throughput**
+- Data organized as **rows with flexible columns** (not fixed schema)
+- Excellent for use cases with **heavy reads/writes**, like:
+  - Social graphs
+  - Time-series data
+- **Replicates data** across nodes to prevent data loss
+- Deletes are **eventual** (soft-delete first, then removed)
+
+#### Cassandra Example: Flexible Columns
+
+Cassandra organizes data as **rows** in **tables**, but each row can have a different number of columns.
+
+### 👤 Table: UserPhotos
+
+| UserID    | PhotoID_1 | PhotoID_2 | PhotoID_3 |
+|-----------|-----------|-----------|-----------|
+| agniva938 | img101    | img102    | img103    |
+| ria2025   | img201    | img202    |           |
+| zed_x     | img301    |           |           |
+
+- **UserID** is the row key.
+- Each row stores photo IDs as **flexible columns**.
+- Ria only has 2 photos, Zed has 1 — this is allowed.
+
+> ✅ No need for every row to have the same number of columns. Cassandra handles sparse data efficiently.
+
+### ✅ Summary
+
+| Storage Type | Use Case Example                     | Best For                            |
+|--------------|--------------------------------------|-------------------------------------|
+| HDFS         | Large-scale distributed photo backup | Big data batch processing           |
+| Amazon S3    | Storing individual user-uploaded pics| Durable, scalable file storage      |
+| Cassandra    | Relationships & metadata             | High-speed access to user data/maps |
+
+---
+
+## 🤳 What is Long Polling? — An Instagram Tale
+
+Meet **Agniva**, an avid Instagram user. Every time his favorite creator *“_KajuKatli_Queen_420_”* posts, Agniva *must* see it within 3 seconds. “No delay,” he says, “or the vibe is gone.” ⚡
+### 🛑 The Problem: Too Many Checks
+
+At first, Agniva wrote a little bot (don’t tell Insta) that **kept asking the server every second**:
+
+> “Hey Instagram, did she post?”  
+> “Nope.”  
+> “Hey Instagram, now?”  
+> “Still nope.”  
+> “How about now?”  
+> “NO, Agniva. PLEASE.”
+
+This is called **polling** — the client *keeps checking* for updates, like an annoying kid in a car:  
+> “Are we there yet?” x1000
+
+### ✅ Enter Long Polling: Chill, Agniva
+
+Now, Agniva uses **long polling**.
+
+Instead of asking repeatedly, he sends **one polite request**:
+
+> 🧘 “Hey Insta, let me know when *KajuKatli_Queen_420_* posts something. I’ll wait.”
+
+Instagram says:
+
+> “Sure. I’ll hold on to your request. You just relax.”
+
+⏳ 15 seconds later...  
+BOOM 💥 — a new post about Kaju Samosas.
+
+Instagram responds:
+
+> “Here it is, Agniva!”  
+> 🥳 Agniva rejoices, likes, and comments "first 🔥"
+
+And right after, he sends another request to wait for the **next** update. This cycle continues peacefully.
+
+### ⚙️ Summary
+
+| Term            | Meaning |
+|-----------------|---------|
+| **Client**      | Agniva’s app/browser |
+| **Long Poll**   | Server *waits* to reply until there’s something to send |
+| **Regular Poll**| Repeatedly asks “anything new?” |
+| **Benefit**     | Real-time-ish updates without hammering the server
+
+So with **long polling**, Agniva’s feed stays fresh, the servers stay calm, and *KajuKatli_Queen_420_* gets her rightful likes.
+
+Everybody wins. 🍬
+
+---
+# 📷 Instagram System Design – Summary with Keywords
+
+## 📌 1. Purpose & Features
+
+- **Photo sharing** platform
+- Users can **upload**, **view**, **follow**, and see a **news feed**
+- Core Features:
+  - Upload photo
+  - View/search photo
+  - Follow user
+  - View news feed from followed users
+
+## 📊 2. Assumptions & Capacity
+
+- **Total Users**: 500M
+- **Daily Active Users**: 1M
+- **Photos/day**: 2M ➝ ≈23 photos/sec
+- **Avg Photo Size**: 200KB
+
+## 🗃️ 3. Storage Needs (10 Years)
+
+| Component       | Storage Estimate |
+|----------------|------------------|
+| Users          | ~32 GB           |
+| Photos         | ~1.88 TB         |
+| Follows        | ~1.82 TB         |
+| **Total**      | **~3.7 TB**      |
+
+## 🧱 4. Architecture Overview
+
+**Components**:
+- **Image Hosting Service**: Handles upload/view/search
+- **Object Storage** (e.g., **S3**, **HDFS**): Stores image files
+- **Metadata DB** (e.g., **Cassandra**, **MySQL**): Stores photo info
+
+## 📦 5. Database Schema (Key Tables)
+
+- `User`: Basic info (UserID, name, email)
+- `Photo`: Info + storage path
+- `UserFollow`: Follower-followee relationships
+- Use **NoSQL (Cassandra)** for scalability and availability
+
+## 🔁 6. Write-Read Separation
+
+- Separate:
+  - **Upload Service** (writes)
+  - **Download Service** (reads)
+- Prevents write-heavy loads from slowing reads
+
+## ✅ 7. Reliability Techniques
+
+- **Replication**: Image + metadata stored in multiple places
+- **Failover instances**: Redundant services
+- **Backups**: Prevent metadata loss
+
+## 🧩 8. Sharding Strategies
+
+- **By UserID**: Easy, but hot users overload shards
+- **By PhotoID**: Better load balancing
+- **Logical Partitions**:
+  - 1000 virtual shards
+  - Map to physical DBs (via config file)
+  - Easy to rebalance
+
+## 📰 9. News Feed Generation
+
+**Naive Flow**:
+- Query latest photos of all followees  
+- Rank + show top N photos
+
+**Optimized**:
+- **Pre-generate feed** in background  
+- Store in `UserNewsFeed` table for fast access
+
+## 🔄 10. Push vs Pull
+
+- **Pull Model**: User asks for updates manually
+- **Push Model**: Server notifies via long-polling
+- **Hybrid**: Push to celebs, Pull for heavy-follow users
+
+## 📡 11. Long Polling
+
+> Technique to simulate **real-time updates** without flooding server.
+
+**How it works**:
+1. Client sends a request
+2. Server holds it open
+3. Sends data when ready
+4. Client sends new request immediately
+
+**Benefits**:
+- Efficient real-time
+- Reduces unnecessary requests
+
+## 🔢 12. Smart PhotoID Design
+
+**PhotoID = [Epoch Timestamp (31 bits) | Sequence (9 bits)]**
+
+- **Epoch Time**: Helps sort by recency (valid for 50 years)
+- **Sequence Number (0–511)**: Allows 512 uploads/second
+- **Enables efficient feed generation + sharding**
+
+## ⚡ 13. Caching & Delivery
+
+- **CDN**: Serve image content globally
+- **Memcache**: Store hot metadata (recent photos, popular users)
+- **Eviction Policy**: **LRU** (Least Recently Used)
+- **80/20 Rule**: 20% of photos handle 80% of reads
+
+## ✅ Design Goals Met
+
+- **Scalable**
+- **Highly available**
+- **Low latency (<200ms)**
+- **Eventually consistent**
+- **Reliable (no data loss)**
+
+## 🧠 Keywords
+
+`Object Storage`, `Cassandra`, `Memcache`, `CDN`, `Sharding`, `Replication`, `Long Polling`, `PhotoID`, `Push vs Pull`, `LRU`, `Feed Pre-generation`, `Logical Partition`, `Write-Read Separation`, `Follower Graph`, `UserNewsFeed`, `Sequence Number`, `Epoch Time`, `Hot Users`, `Metadata`, `HDFS`, `S3`
+
+---
