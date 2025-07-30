@@ -61,3 +61,32 @@ Cloud storage has grown rapidly due to its convenience and the shift toward mult
 
 ---
 
+## 📌 3 Design Considerations
+
+- **High Read & Write Load**: Expect large volume on both ends.
+- **Read ≈ Write Ratio**: Balanced usage, not read-heavy like many other systems.
+### 📦 Chunking Strategy
+- **Split files into small chunks** (e.g., **4MB**). ---> Assunption: 4MB 
+- Benefits:
+  - Retry only **failed chunks**, not whole file.
+  - Enables **partial updates** (upload only changed chunks).
+### 🧠 Optimization Concepts
+
+- **Chunk Deduplication**:
+  - Store identical chunks **once** to save **space & bandwidth**.
+> 👤 User A uploads a 100MB video.  
+> 👤 User B uploads the **same** video.  
+> 📦 Server checks chunks → finds them **identical** → stores them **only once**.  
+> ✅ Saves space & avoids redundant uploads.
+- **Local Metadata Caching**:
+  - Store file name, size, etc. on **client-side** to reduce **server round-trips**.
+> 👤 User opens Dropbox app on their phone.  
+> 📄 The app **already knows** file names, sizes, last modified time.
+> 
+> ✅ No need to hit server just to list files → **faster load times**.
+
+- **Delta Uploads (Diffs)**:
+  - For **small edits**, send only the **differences**, not entire chunks.
+> 👤 User edits a 100MB document → changes **1 paragraph**.  
+> Instead of re-uploading 100MB, client sends just the **tiny diff chunk**.  
+> ✅ Saves **upload time** and **bandwidth**.
