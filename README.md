@@ -529,6 +529,56 @@ So with **long polling**, Agniva’s feed stays fresh, the servers stay calm, an
 Everybody wins. 🍬
 
 ---
+## 🧪 Understanding ACID with Dropbox (and Drama)
+
+ACID = Atomicity, Consistency, Isolation, Durability  
+These are the **rules of the universe** for data operations in systems like Dropbox. Let’s meet our fictional user: **Agniva**, a chaotic human.
+### 🅰️ Atomicity – "All or Nothing!"
+
+> Agniva tries to upload his 500-page **"Thesis on Why Cats Should Rule the World"**.
+
+- ✅ If the entire file uploads, great.
+- ❌ If his Wi-Fi dies mid-upload, Dropbox **doesn’t save a half-file**.
+- Instead, it **rolls back** like nothing ever happened.
+
+**Moral**: No partial files. Either the file is saved completely or not at all.
+### 🅲 Consistency – "Keep the Universe in Balance"
+
+> Dropbox has a rule: **no duplicate file names** in the same folder.
+
+- Agniva accidentally tries to upload **“cat_rules.pdf”** twice.
+- Dropbox politely declines: "Bruh, it's already here."
+
+**Moral**: System always moves from one valid state to another — no broken rules.
+### 🅸 Isolation – "Don’t Peek While I’m Working"
+
+> Agniva and his cat **Mr. Meowington** are *simultaneously* editing the same file:  
+> `"Top_10_Meow_Memes.txt"`
+
+- While Agniva is typing, Dropbox ensures Mr. Meowington doesn’t see half-written nonsense like:
+When the cat says "meeeee
+- Each user works in isolation until their changes are complete.
+
+**Moral**: Simultaneous actions won’t mess each other up.
+### 🅳 Durability – "Even If the World Ends..."
+
+> Agniva finally uploads his life’s work: `"Ultimate_Cat_Manifesto.pdf"`  
+> Just as he hits save, a power cut hits his city. 💡⚡
+
+- But fear not! Dropbox already **replicated his file across servers in 3 countries**.
+
+**Moral**: Once Agniva sees “Upload Complete”, the file is safe — even if his laptop explodes.
+### ✅ TL;DR: ACID Makes Sure That...
+
+- **Atomicity**: Uploads aren’t half-done.
+- **Consistency**: Dropbox always obeys the rules.
+- **Isolation**: No messy overlaps when people edit at the same time.
+- **Durability**: Once saved, always saved.
+
+🧠 Without ACID, your files could become soup. With ACID, your "Cat Manifesto" is safe forever.
+
+---
+
 # 📷 Instagram System Design – Summary with Keywords
 
 ## 📌 1. Purpose & Features
