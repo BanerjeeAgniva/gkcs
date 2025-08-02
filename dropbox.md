@@ -172,3 +172,149 @@ Tablet and phone then:
 ✅ Result: Agniva now has `project_notes.pdf` synced across all devices.
 
 ---
+
+## ⚙️ 6.1 Component Design - Client
+
+The **Client Application** is the user's local agent that:
+- Monitors the workspace folder
+- Uploads/downloads files
+- Syncs with cloud storage & metadata
+- Handles changes, conflicts, and updates
+
+### 🔧 Key Responsibilities of the Client:
+1. **Upload & Download Files**
+2. **Detect File Changes** (create/update/delete)
+3. **Handle Conflicts** (offline or concurrent updates)
+
+### 📦 Efficient File Transfer with Chunks
+- Files are split into **4MB chunks**
+- Transfer **only modified chunks**, not the entire file
+- Benefits:
+  - Saves **bandwidth**
+  - Improves **IOPS** (Input/Output Operations per Second)
+  - Handles **network interruptions** better
+
+### 🗃️ Local Metadata Copy
+- ✅ Store file info (name, size, version, etc.) on **client**
+- ⏱️ Enables **offline updates**
+- 🚀 Reduces **round trips** to metadata server
+
+### 🔁 Change Detection from Other Clients
+
+- ❌ **Polling**: Not scalable — wastes bandwidth and CPU
+- ✅ **Long Polling**:
+  - Client sends request → Server **waits** until there’s data
+  - Sends response once there's an update
+  - Client then sends a **new request** for future updates
+  - ⏱️ Achieves **near real-time sync**
+
+### 🔍 Components of the Client
+
+#### 🗂️ I. Internal Metadata DB
+- Tracks:
+  - Files
+  - Chunks
+  - Versions
+  - File locations
+
+#### ✂️ II. Chunker
+- Splits files into **chunks**
+- Reconstructs full file from chunks
+- Transfers **only changed parts** to cloud
+
+#### 👀 III. Watcher
+- Monitors **local workspace folder**
+- Notifies `Indexer` of:
+  - File create/update/delete
+- Also **listens to sync messages** from the server
+
+#### 🧠 IV. Indexer
+- Processes events from `Watcher`
+- Updates **internal metadata**
+- Uploads/downloads **chunks**
+- Talks to:
+  - **Cloud storage** for file data
+  - **Synchronization Server** for broadcasting changes
+
+### 🐌 Handling Slow Servers
+- Use **Exponential Backoff**:
+  - Wait longer between retries if server is slow or unresponsive
+  - Reduces pressure on already stressed servers
+
+### 📱 Special Case: Mobile Clients
+- Sync changes **on demand**
+- Save **bandwidth** and **battery**
+
+✅ **Summary**:
+Clients handle all file sync, chunking, and metadata updates locally while coordinating with the backend through efficient protocols like long polling and intelligent chunk management.
+
+<img width="910" height="586" alt="image" src="https://github.com/user-attachments/assets/ba69f3c9-9db3-42a2-bc4f-6531224aeea5" />
+
+## 🔄 Example Walkthrough:
+Agniva adds `final_thesis.pdf` (8MB) to their Dropbox folder on their laptop.
+
+### 🧩 Chunker
+- Splits the file into **two 4MB chunks**
+- Each chunk is **hashed** to detect duplicates
+
+➡️ Passes chunks to **Indexer**
+
+### 📘 Internal DB
+- Stores:
+  - File name: `final_thesis.pdf`
+  - Chunk hashes
+  - File version
+  - Location on local disk
+- Helps detect **local changes** or **conflicts**
+
+### 👁️ Watcher
+- Monitors the workspace folder for:
+  - New files
+  - Updates
+  - Deletions
+- Detects that `final_thesis.pdf` was added
+
+➡️ Notifies **Indexer**
+
+### 🧠 Indexer
+- Updates **internal DB** with chunk info
+- Uploads chunks to **Block/Cloud Storage**
+- Updates metadata like:
+  - Last modified time
+  - File version
+- Notifies **Synchronization Service** that:
+  - A new file has been uploaded
+    
+### ☁️ Block/Cloud Storage (🟧)
+- Receives and stores the **file chunks**
+- These chunks are now available in the cloud
+- Other devices can **download them on demand**
+
+### 🔁 Synchronization Service (🟨)
+- Receives notification of the new file
+- Updates the **Metadata DB**:
+  - File: `final_thesis.pdf`
+  - User: agniva123
+  - Size: 8MB
+  - Chunk count: 2
+
+➡️ Sends update notifications to **other clients** (tablet, phone)
+
+### 🔗 Control & Data Flow
+- **Data Flow**: Chunks move from Chunker → Block Storage
+- **Control Flow**: Metadata and file events move through:
+  - Watcher → Indexer → Sync Service → Metadata DB
+   
+## 📦 Summary
+
+| Component           | Role                                              |
+|--------------------|---------------------------------------------------|
+| Chunker            | Splits/assembles file chunks                      |
+| Watcher            | Monitors folder for changes                       |
+| Internal DB        | Stores local metadata                             |
+| Indexer            | Uploads/downloads chunks, syncs metadata          |
+| Block Storage      | Stores actual file data                           |
+| Sync Service       | Coordinates cross-device updates                  |
+| Metadata DB        | Tracks file info (who/what/where/when)            |
+
+All components work together to ensure **real-time**, **efficient**, and **reliable** syncing across devices!
