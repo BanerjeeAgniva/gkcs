@@ -683,3 +683,29 @@ The diagram illustrates the **end-to-end architecture** of a Dropbox-like file s
 
 ---
 
+## 📁 7. File Processing Workflow — Simple Example
+
+👤 **Client A**: Agniva (on laptop)  
+👥 **Clients B & C**: Agniva’s tablet and phone
+
+Agniva is editing a shared file: `writeup.txt`
+
+### 📌 Step-by-step Workflow
+
+1. ✅ **Chunk Upload**
+   - Agniva edits `writeup.txt` and saves changes.
+   - Laptop (Client A) uploads modified chunks to **Cloud Storage**.
+
+2. 🧠 **Metadata Update**
+   - The client sends updated metadata (file version, chunk info, timestamp) to the **Metadata Server**.
+   - Changes are committed to the **Metadata DB**.
+
+3. 📬 **Send Notifications**
+   - Once confirmed, the **Synchronization Service** sends update notifications via **Message Queuing Service**.
+   - Clients B and C (tablet, phone) get individual messages in their **response queues**.
+
+4. ⬇️ **Receive + Sync**
+   - When the tablet and phone come online:
+     - They poll their response queues.
+     - Fetch the latest metadata.
+     - Download only the updated chunks from **Block Server**.
