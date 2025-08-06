@@ -201,6 +201,17 @@ Reasons to rebalance:
 | Directory-based     | Easy rebalancing                 | Extra layer of complexity        |
 
 ---
+## 📡 Bandwidth vs ThroughPut
+> *📶 **Bandwidth** is the maximum amount of data that can be transferred over a network in a given time. Higher bandwidth means faster data transfer.*
+> *📥 **Ingress** refers to data **coming into** the system (e.g., user uploads).*
+> *📤 **Egress** refers to data **leaving** the system (e.g., user downloads or reads).*
+
+Throughput is the amount of data or number of operations a system can process in a given period
+Bandwidth is the maximum capacity of data transfer in a network (like a highway’s width).
+Throughput is the actual amount of data successfully transferred over time (like cars actually moving on the highway).
+
+---
+
 # RESTful Conventions
 ## 🌐 What is REST?
 **REST (Representational State Transfer)** is an architectural style for building scalable web services using HTTP. RESTful APIs follow conventions to make services predictable, uniform, and stateless.
@@ -579,125 +590,39 @@ When the cat says "meeeee
 
 ---
 
-# 📷 Instagram System Design – Summary with Keywords
+# Data Deduplication (with DropBox Example)
 
-## 📌 1. Purpose & Features
+Data Deduplication helps eliminate **duplicate data** to save **storage** and **bandwidth**.
 
-- **Photo sharing** platform
-- Users can **upload**, **view**, **follow**, and see a **news feed**
-- Core Features:
-  - Upload photo
-  - View/search photo
-  - Follow user
-  - View news feed from followed users
+🧠 **Idea**: Instead of storing/uploading the same chunk multiple times, store it once and reuse it via references.
 
-## 📊 2. Assumptions & Capacity
+### 📘 Example:
+Agniva and his friend(hypothetical, he has no friends) both upload the same file: `project_notes.pdf`.  
+Instead of storing **two copies**, Dropbox calculates a **hash** for each chunk.
 
-- **Total Users**: 500M
-- **Daily Active Users**: 1M
-- **Photos/day**: 2M ➝ ≈23 photos/sec
-- **Avg Photo Size**: 200KB
+If a chunk already exists (based on hash match), it just **reuses the chunk**.
 
-## 🗃️ 3. Storage Needs (10 Years)
+## 🛠️ Two Deduplication Methods:
 
-| Component       | Storage Estimate |
-|----------------|------------------|
-| Users          | ~32 GB           |
-| Photos         | ~1.88 TB         |
-| Follows        | ~1.82 TB         |
-| **Total**      | **~3.7 TB**      |
+### a. 🕒 Post-process Deduplication
+- Chunks are stored **first**, deduplicated **later**.
+- ✅ Fast upload for clients.
+- ❌ Temporary duplicates use extra **storage** and **bandwidth**.
 
-## 🧱 4. Architecture Overview
+📌 *Example*: Agniva uploads a chunk → gets stored → backend checks later and removes duplicate.
 
-**Components**:
-- **Image Hosting Service**: Handles upload/view/search
-- **Object Storage** (e.g., **S3**, **HDFS**): Stores image files
-- **Metadata DB** (e.g., **Cassandra**, **MySQL**): Stores photo info
+### b. ⚡ In-line Deduplication
+- Chunks are **checked immediately** before uploading/storing.
+- ✅ Saves **network + storage** instantly.
+- ❌ Slight delay for hash comparison during upload.
 
-## 📦 5. Database Schema (Key Tables)
+📌 *Example*: Agniva uploads a chunk → system calculates hash → already exists → only metadata is updated.
 
-- `User`: Basic info (UserID, name, email)
-- `Photo`: Info + storage path
-- `UserFollow`: Follower-followee relationships
-- Use **NoSQL (Cassandra)** for scalability and availability
+## 🧠 Summary Table
 
-## 🔁 6. Write-Read Separation
-
-- Separate:
-  - **Upload Service** (writes)
-  - **Download Service** (reads)
-- Prevents write-heavy loads from slowing reads
-
-## ✅ 7. Reliability Techniques
-
-- **Replication**: Image + metadata stored in multiple places
-- **Failover instances**: Redundant services
-- **Backups**: Prevent metadata loss
-
-## 🧩 8. Sharding Strategies
-
-- **By UserID**: Easy, but hot users overload shards
-- **By PhotoID**: Better load balancing
-- **Logical Partitions**:
-  - 1000 virtual shards
-  - Map to physical DBs (via config file)
-  - Easy to rebalance
-
-## 📰 9. News Feed Generation
-
-**Naive Flow**:
-- Query latest photos of all followees  
-- Rank + show top N photos
-
-**Optimized**:
-- **Pre-generate feed** in background  
-- Store in `UserNewsFeed` table for fast access
-
-## 🔄 10. Push vs Pull
-
-- **Pull Model**: User asks for updates manually
-- **Push Model**: Server notifies via long-polling
-- **Hybrid**: Push to celebs, Pull for heavy-follow users
-
-## 📡 11. Long Polling
-
-> Technique to simulate **real-time updates** without flooding server.
-
-**How it works**:
-1. Client sends a request
-2. Server holds it open
-3. Sends data when ready
-4. Client sends new request immediately
-
-**Benefits**:
-- Efficient real-time
-- Reduces unnecessary requests
-
-## 🔢 12. Smart PhotoID Design
-
-**PhotoID = [Epoch Timestamp (31 bits) | Sequence (9 bits)]**
-
-- **Epoch Time**: Helps sort by recency (valid for 50 years)
-- **Sequence Number (0–511)**: Allows 512 uploads/second
-- **Enables efficient feed generation + sharding**
-
-## ⚡ 13. Caching & Delivery
-
-- **CDN**: Serve image content globally
-- **Memcache**: Store hot metadata (recent photos, popular users)
-- **Eviction Policy**: **LRU** (Least Recently Used)
-- **80/20 Rule**: 20% of photos handle 80% of reads
-
-## ✅ Design Goals Met
-
-- **Scalable**
-- **Highly available**
-- **Low latency (<200ms)**
-- **Eventually consistent**
-- **Reliable (no data loss)**
-
-## 🧠 Keywords
-
-`Object Storage`, `Cassandra`, `Memcache`, `CDN`, `Sharding`, `Replication`, `Long Polling`, `PhotoID`, `Push vs Pull`, `LRU`, `Feed Pre-generation`, `Logical Partition`, `Write-Read Separation`, `Follower Graph`, `UserNewsFeed`, `Sequence Number`, `Epoch Time`, `Hot Users`, `Metadata`, `HDFS`, `S3`
+| Method        | When it deduplicates     | Pros                         | Cons                          |
+|---------------|---------------------------|------------------------------|-------------------------------|
+| Post-process  | After storing chunks      | Fast upload for user         | Temp duplicates waste space   |
+| In-line       | Before storing/uploading  | Optimal storage & bandwidth  | Slightly slower uploads       |
 
 ---
