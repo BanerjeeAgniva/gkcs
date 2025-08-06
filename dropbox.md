@@ -709,3 +709,168 @@ Agniva is editing a shared file: `writeup.txt`
      - They poll their response queues.
      - Fetch the latest metadata.
      - Download only the updated chunks from **Block Server**.
+
+## 🗂️ 8. Metadata Partitioning
+
+To scale metadata storage for **millions of users and billions of files**, we need to **partition the database**.
+
+### 1. 🧱 Vertical Partitioning
+**Split by feature/tables** into different DBs.
+
+📌 *Example*:  
+- DB1 → User tables  
+- DB2 → File/Chunk tables  
+
+✅ Simple to implement  
+❌ Cross-DB joins can be slow/inconsistent  
+❌ Not scalable for huge tables like chunks
+
+### 2. 🔤 Range-Based Partitioning
+**Partition by first letter** of file path/name.
+
+📌 *Example*:  
+- Files starting with `A` → Partition 1  
+- Files starting with `B` → Partition 2  
+- `X, Y, Z` → Combined into one partition  
+
+✅ Predictable lookups  
+❌ Risk of uneven load  
+📉 *Problem*: Too many files starting with "E" can overload that partition
+
+### 3. #️⃣ Hash-Based Partitioning
+**Use a hash of FileID** to assign to a partition.
+
+📌 *Example*:  
+- Hash(FileID) → 87 → Store in partition 87  
+
+✅ Random + even distribution  
+❌ May still lead to imbalance  
+💡 *Solution*: Use **Consistent Hashing** to dynamically redistribute data
+
+## 🧠 Summary Table
+
+| Type                 | Pros                          | Cons                          |
+|----------------------|-------------------------------|-------------------------------|
+| Vertical             | Easy to implement             | Poor scalability on large tables |
+| Range-Based          | Simple, predictable access    | Risk of hotspot partitions     |
+| Hash-Based           | Even distribution via hashing | May need consistent hashing    |
+
+---
+
+## ⚡ 9. Caching
+
+To boost performance and reduce load, we use **caching** in two parts of the system:
+
+### 1. 📦 Chunk Cache (Block Storage Cache)
+
+- Caches **hot file chunks** in memory.
+- Before reading from Block Storage, Block Server checks **cache (e.g., Memcached)**.
+- Each chunk is identified by **ID or hash**.
+
+📌 *Example*:
+- Chunk `ID: abc123` → stored in Memcached.
+- If client requests `abc123`, fetch from cache instead of disk.
+
+💡 A high-end server (144GB RAM) can cache ≈ **36K chunks**.
+
+### 2. 🧠 Metadata Cache
+
+- Frequently accessed metadata (e.g., file structure, user info) is cached.
+- Reduces Metadata DB hits.
+
+### 🔁 Cache Replacement Policy
+
+**LRU (Least Recently Used)**  
+- When cache is full, evict the **least recently accessed chunk**.
+
+✅ Good fit for user-driven systems where **recently used files are likely to be reused**.
+
+## 🧠 Summary Table
+
+| Cache Type       | Caches What?     | Benefit                  | Replacement |
+|------------------|------------------|---------------------------|-------------|
+| Chunk Cache      | File chunks      | Faster file access        | LRU         |
+| Metadata Cache   | File/User metadata | Reduces DB queries      | LRU         |
+
+---
+
+## ⚖️ 10. Load Balancer (LB) 
+
+Load Balancers distribute incoming requests across multiple servers to ensure reliability and performance.
+
+### 🧩 Where to Use LB:
+
+1. **Between Clients and Block Servers**
+2. **Between Clients and Metadata Servers**
+   
+### 🔁 Round Robin Load Balancing (Basic)
+
+- Distributes requests **equally** among servers.
+- **Easy to implement** and **lightweight**.
+- **Failsafe**: If a server goes down, LB removes it from rotation.
+
+📌 *Example*:  
+Client 1 → Server A  
+Client 2 → Server B  
+Client 3 → Server C  
+...repeat.
+
+### ⚠️ Limitation
+
+- Doesn’t consider **server load**.
+- May send traffic to **overloaded or slow servers**.
+
+### 🧠 Intelligent Load Balancing (Advanced)
+
+- Periodically checks **backend server load**.
+- Adjusts routing to avoid overloaded servers.
+- Improves **latency** and **user experience**.
+  
+## ✅ Summary Table
+
+| Type       | Pros                          | Cons                          |
+|------------|-------------------------------|-------------------------------|
+| Round Robin | Simple, fast, fault-tolerant | Ignores server load           |
+| Smart LB   | Load-aware, efficient routing | More complex to implement     |
+
+---
+
+## 🔐 12. Security, Permissions, and File Sharing — Short Notes
+
+In a Dropbox-like system, **privacy and access control** are critical, especially when files can be **shared** or made **public**.
+
+### 🛡️ File Security & Privacy
+
+- Users expect **confidentiality** while storing files in the cloud.
+- Unauthorized access should be strictly prevented.
+
+### 🧾 File Permissions (Stored in Metadata DB)
+
+For each file, store:
+
+- 🔑 **Owner ID**: Who uploaded the file.
+- 👀 **View Permissions**: Who can see the file.
+- ✏️ **Edit Permissions**: Who can modify it.
+- 🌍 **Public Flag**: Is the file visible to everyone?
+
+### 📁 Example
+
+User: `agniva123` uploads `report.pdf`
+
+Metadata DB stores:
+
+```json
+{
+  "file": "report.pdf",
+  "owner": "agniva123",
+  "viewers": ["user456", "user789"],
+  "editors": ["user456"],
+  "is_public": false
+}
+
+```
+
+---
+
+
+
