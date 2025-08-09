@@ -169,12 +169,16 @@ Every time Agniva adds, edits, or shares a file, CloudBox:
 - 1M active connections/minute.
 
 ## 5. High-Level Architecture
+<img width="911" height="490" alt="image" src="https://github.com/user-attachments/assets/ad7bfe53-710e-4c3b-b8fa-c97f942f933b" />
+
 - **Clients**: Monitor folder, upload/download, sync.
 - **Block Server**: Handles chunks, stores in cloud storage.
 - **Metadata Server**: Stores file info, permissions.
 - **Sync Server**: Propagates updates across devices.
 
 ## 6. Client Components
+<img width="1010" height="622" alt="image" src="https://github.com/user-attachments/assets/7dcbb94a-5b8e-4e17-869c-63889d541a42" />
+
 - **Internal Metadata DB**: Stores local file/chunk info, versions, and paths for quick change detection.
 - **Chunker**: Splits files into chunks, detects changes, and reassembles files.
 - **Watcher**: Monitors workspace folder for file create/update/delete events.
@@ -199,6 +203,8 @@ Every time Agniva adds, edits, or shares a file, CloudBox:
 - Scales with Kafka/RabbitMQ/SQS.
 
 ## 9. Message Queuing
+<img width="1087" height="461" alt="image" src="https://github.com/user-attachments/assets/209f81c2-fc82-41c4-8561-4114e8dcfd49" />
+
 - **Request Queue**: All client updates → Sync Service.
 - **Response Queue**: Per client/device → update instructions.
 - Benefits: Async, scalable, reliable, loosely coupled.
