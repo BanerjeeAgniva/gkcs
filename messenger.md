@@ -124,3 +124,74 @@ c. Track user online/offline status & notify relevant users.
   - Use pagination when fetching from server.
   - Page size varies by client (e.g., smaller for mobile devices).
 
+## c. Online/offline status
+
+### Goal
+Track and notify friends about **online/offline status changes** without overloading the system (important at 500M active users).
+
+### Optimizations
+
+1. **Initial Status Fetch**
+   - When **Alice** opens the app → pull status of all friends (e.g., Bob: online, Charlie: offline).
+
+2. **Message to Offline User**
+   - If **Alice** sends a message to **Charlie** (who is offline):
+     - Server sends failure notice to Alice.
+     - Alice's app updates Charlie's status to offline.
+
+3. **Delayed Online Broadcast**
+   - **Charlie** comes online → server waits a few seconds before telling Alice & Bob.
+   - Avoids rapid changes if Charlie disconnects quickly.
+
+4. **Viewport-based Pull**
+   - **Alice** is only shown Bob & Charlie in her chat list → her app occasionally pulls just their statuses.
+   - This is infrequent since the server already broadcasts online updates.
+
+5. **On New Chat Start**
+   - If Alice starts a new chat with **Dave** → app pulls Dave's latest status right away.
+     
+<img width="832" height="530" alt="image" src="https://github.com/user-attachments/assets/9f0835c6-1a1d-4625-893c-e7a7d2efdce3" />
+
+### 1. Users Connect
+- **Alice**, **Bob**, and **Charlie** open the chat app.
+- They connect to the system through the **orange load balancer**.
+- The load balancer assigns them to chat servers:
+  - Alice → Chat Server 1  
+  - Bob → Chat Server 3  
+  - Charlie → Chat Server 2  
+
+### 2. Chat Servers Handle Messages
+- When **Alice sends a message** to Charlie:
+  1. Her message goes to **Chat Server 1**.
+  2. Chat Server 1 checks if Charlie is connected — it finds Charlie on **Chat Server 2**.
+  3. Chat Server 1 sends the message to Chat Server 2.
+  4. Chat Server 2 tries to deliver it to Charlie — but if Charlie is offline, it stores the message in the database (HBase).
+
+### 3. Database (DB Shards)
+- The **DB shards** hold the actual chat history.
+- Example:
+  - Alice → Charlie messages might be stored in **DB Shard 1**.
+  - Bob → Charlie messages might be stored in **DB Shard 2**.
+- This splitting of the database makes it faster and scalable.
+
+### 4. Cache Layer
+- There’s also a **green load balancer** that sends requests to **cache servers**.
+- Cache stores **recent messages and user status** so they can be retrieved instantly.
+- Example:
+  - If Alice just chatted with Bob, their last few messages are in the cache.
+  - When Alice opens Bob’s chat window, the app fetches from cache (super fast) instead of the database.
+
+### 5. Status Updates
+- Chat servers also keep track of **who’s online**.
+- Example:
+  1. Charlie logs in → Chat Server 2 detects this.
+  2. After a short delay (to avoid flapping), Chat Server 2 broadcasts “Charlie is online” to relevant users like Alice and Bob.
+  3. If Alice opens Charlie’s chat later, her app can also check the cache for Charlie’s latest status.
+
+### Flow Recap with Example
+1. Alice → sends a message to Charlie → goes to Chat Server 1 → routed to Chat Server 2.  
+2. If Charlie is offline → stored in DB shard → status sent to Alice (offline).  
+3. Charlie logs in → Chat Server 2 broadcasts “Charlie online” to Alice & Bob.  
+4. Bob opens Charlie’s chat → quickly gets recent messages from cache.
+
+
