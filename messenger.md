@@ -64,6 +64,15 @@ a. Receive and deliver messages.
 b. Store/retrieve messages from DB.
 c. Track user online/offline status & notify relevant users.
 
+Design Summary: Clients will open a connection to the chat server to send a 
+message; the server will then pass it to the requested user. All the active users will 
+keep a **connection open with the server** to receive messages. Whenever a new 
+message arrives, the chat server will push it to the receiving user on the long poll 
+request. Messages can be stored in **HBase**, which supports quick small updates, and 
+range based searches. The servers can **broadcast** the online status of a user to other 
+**relevant users**. Clients can pull status updates for users who are visible in the client’s 
+viewport on a less frequent basis. 
+
 ## a. Message Handling
 
 **Sending/Receiving**
