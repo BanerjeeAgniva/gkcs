@@ -84,16 +84,16 @@ c. Track user online/offline status & notify relevant users.
 - Temporary disconnect → expect reconnect & retry.
 - Optionally store message for later delivery.
 
-**Scaling Connections**
+**How do we know which server holds the connection to which user?**
 - Plan for **500M** connections.
 - One server handles ~50K connections → need **10K servers**.
 - **Software load balancer** maps UserID to server.
 
-**Message Delivery Steps**
+**How should the server process a ‘deliver message’ request?**
 1. Store in DB (can be async).
 2. Send to receiver via server holding connection.
 3. Acknowledge sender immediately.
 
-**Maintaining Sequence**
+**How does the messenger maintain the sequencing of the messages?**
 - Store timestamp on arrival (not enough for global ordering).
 - Maintain **per-user sequence numbers** for consistent device ordering.
