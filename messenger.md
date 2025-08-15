@@ -97,3 +97,30 @@ c. Track user online/offline status & notify relevant users.
 **How does the messenger maintain the sequencing of the messages?**
 - Store timestamp on arrival (not enough for global ordering).
 - Maintain **per-user sequence numbers** for consistent device ordering.
+
+## b. Storing and Retrieving Messages from the Database
+
+- **Message Storage Methods:**
+  1. **Separate Thread**: Main thread spawns a background thread to store message.
+  2. **Asynchronous Request**: Non-blocking DB write (async I/O or message queue).
+
+- **Database Design Considerations:**
+  1. Efficient use of DB connection pool.
+  2. Retry failed requests.
+  3. Log requests that fail after all retries.
+  4. Retry logged failed requests once issues are resolved.
+
+- **Storage System Choice:**
+  - Need high rate of small updates & fast range queries.
+  - RDBMS (MySQL) & some NoSQL (MongoDB) unsuitable due to high per-row latency.
+  - **HBase** (wide-column NoSQL) chosen:
+    - Column-oriented, key-value.
+    - Stores multiple values per key across columns.
+    - Runs on HDFS; modeled after Google BigTable.
+    - Buffers writes in memory (MemStore) before batch flush to disk.
+    - Efficient for variable-sized data and sequential scans.
+
+- **Data Fetching:**
+  - Use pagination when fetching from server.
+  - Page size varies by client (e.g., smaller for mobile devices).
+
