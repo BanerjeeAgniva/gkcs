@@ -1,0 +1,303 @@
+# Facebook Messenger
+
+## 1 Requirements
+
+## a Functional Requirements
+
+- **One-on-one conversations** between users.
+- Track **online/offline statuses** of users.
+- **Persistent storage of chat history**.
+
+## b Non-functional Requirements
+
+- Real-time **chat** with **minimum latency**.
+- **Highly consistent** chat history across all devices.
+- **High availability** is desirable, but can **tolerate lower availability** for better consistency.
+
+## c Extended Requirements
+
+- **Group Chats**: Support multiple participants in a conversation.
+- **Push notifications**: Notify users of **new messages** when they are **offline**.
+
+---
+
+## 2 Capacity Estimation & Constraints
+
+<img width="307" height="251" alt="image" src="https://github.com/user-attachments/assets/0b4a4fe0-3b23-465c-89b1-08ca3595bd59" />
+
+### Assumptions
+
+- **Daily Active Users (DAU)**: 500 million.
+- **Avg Messages per User/day**: 40.
+- **Avg Message Size**: 100 bytes.
+- **Retention Period**: 5 years of chat history.
+- **Data Transfer Rule**: Each incoming message is delivered to one other user.
+- **Exclusions**: No compression or replication factored in.
+- **Additional Storage Needs**: User profile data + message metadata (ID, timestamp, etc.).
+
+### Calculations
+
+- **Total Messages/day**: 500M × 40 = **20 billion**.
+- **Storage/day**: 20B × 100B = **2TB/day**.
+- **5-year Storage**: 2TB × 365 × 5 ≈ **3.6PB**.
+
+### Bandwidth
+
+- **Incoming Data Rate**: 2TB ÷ 86,400s ≈ **25MB/s**.
+- **Outgoing Data Rate**: Same as incoming (25MB/s).
+
+---
+
+<img width="1462" height="662" alt="image" src="https://github.com/user-attachments/assets/857541bc-9edc-45ee-8325-b40a13cb9b28" />
+
+## 3 High-Level Chat Flow (Steps 1–9)
+
+1. **User A → Server A**: Sends message to User B.
+2. **Server A → User A**: Sends ACK (message received).
+3. **Server A → DB**: Stores message in database.
+4. **Server A → Server B**: Passes message to server handling User B.
+5. **Server B → Server A**: Sends acknowledgement.
+6. **Server B → User B**: Sends message to User B.
+7. **User B → Server B**: Sends message receive acknowledgement.
+8. **Server B → Server A**: Confirms delivery to User B.
+9. **Server A → User A**: Sends delivery confirmation to User A.
+
+---
+
+## 4 Detailed Component Design — Single Server
+
+### Use Cases
+
+a. Receive and deliver messages.
+b. Store/retrieve messages from DB.
+c. Track user online/offline status & notify relevant users.
+
+Design Summary: Clients will open a connection to the chat server to send a
+message; the server will then pass it to the requested user. All the active users will
+keep a **connection open with the server** to receive messages. Whenever a new
+message arrives, the chat server will push it to the receiving user on the long poll
+request. Messages can be stored in **HBase**, which supports quick small updates, and
+range based searches. The servers can **broadcast** the online status of a user to other
+**relevant users**. Clients can pull status updates for users who are visible in the client’s
+viewport on a less frequent basis.
+
+## 4a. Message Handling
+
+**Sending/Receiving**
+
+- Users connect to server to send messages.
+- **Two models:**
+  1. **Pull**: Users periodically check server → frequent empty responses, high resource waste.
+  2. **Push**: Keep open connection (low latency, instant delivery).
+
+**Maintaining Open Connections**
+
+- Use **HTTP Long Polling** or **WebSockets**.
+- Long polling: client request held until data available; reconnect on timeout/disconnect.
+
+**Tracking Connections**
+
+- Server keeps hash table: `UserID → connection object`.
+
+**Offline Users**
+
+- If disconnected, notify sender of delivery failure.
+- Temporary disconnect → expect reconnect & retry.
+- Optionally store message for later delivery.
+
+**How do we know which server holds the connection to which user?**
+
+- Plan for **500M** connections.
+- One server handles ~50K connections → need **10K servers**.
+- **Software load balancer** maps UserID to server.
+
+**How should the server process a ‘deliver message’ request?**
+
+1. Store in DB (can be async).
+2. Send to receiver via server holding connection.
+3. Acknowledge sender immediately.
+
+**How does the messenger maintain the sequencing of the messages?**
+
+- Store timestamp on arrival (not enough for global ordering).
+- Maintain **per-user sequence numbers** for consistent device ordering.
+
+## 4b. Storing and Retrieving Messages from the Database
+
+- **Message Storage Methods:**
+
+  1. **Separate Thread**: Main thread spawns a background thread to store message.
+  2. **Asynchronous Request**: Non-blocking DB write (async I/O or message queue).
+
+- **Database Design Considerations:**
+
+  1. Efficient use of DB connection pool.
+  2. Retry failed requests.
+  3. Log requests that fail after all retries.
+  4. Retry logged failed requests once issues are resolved.
+
+- **Storage System Choice:**
+
+  - Need high rate of small updates & fast range queries.
+  - RDBMS (MySQL) & some NoSQL (MongoDB) unsuitable due to high per-row latency.
+  - **HBase** (wide-column NoSQL) chosen:
+    - Column-oriented, key-value.
+    - Stores multiple values per key across columns.
+    - Runs on HDFS; modeled after Google BigTable.
+    - Buffers writes in memory (MemStore) before batch flush to disk.
+    - Efficient for variable-sized data and sequential scans.
+
+- **Data Fetching:**
+  - Use pagination when fetching from server.
+  - Page size varies by client (e.g., smaller for mobile devices).
+
+## 4c. Online/offline status
+
+### Goal
+
+Track and notify friends about **online/offline status changes** without overloading the system (important at 500M active users).
+
+### Optimizations
+
+1. **Initial Status Fetch**
+
+   - When **Alice** opens the app → pull status of all friends (e.g., Bob: online, Charlie: offline).
+
+2. **Message to Offline User**
+
+   - If **Alice** sends a message to **Charlie** (who is offline):
+     - Server sends failure notice to Alice.
+     - Alice's app updates Charlie's status to offline.
+
+3. **Delayed Online Broadcast**
+
+   - **Charlie** comes online → server waits a few seconds before telling Alice & Bob.
+   - Avoids rapid changes if Charlie disconnects quickly.
+
+4. **Viewport-based Pull**
+
+   - **Alice** is only shown Bob & Charlie in her chat list → her app occasionally pulls just their statuses.
+   - This is infrequent since the server already broadcasts online updates.
+
+5. **On New Chat Start**
+   - If Alice starts a new chat with **Dave** → app pulls Dave's latest status right away.
+
+<img width="832" height="530" alt="image" src="https://github.com/user-attachments/assets/9f0835c6-1a1d-4625-893c-e7a7d2efdce3" />
+
+### 1. Users Connect
+
+- **Alice**, **Bob**, and **Charlie** open the chat app.
+- They connect to the system through the **orange load balancer**.
+- The load balancer assigns them to chat servers:
+  - Alice → Chat Server 1
+  - Bob → Chat Server 3
+  - Charlie → Chat Server 2
+
+### 2. Chat Servers Handle Messages
+
+- When **Alice sends a message** to Charlie:
+  1. Her message goes to **Chat Server 1**.
+  2. Chat Server 1 checks if Charlie is connected — it finds Charlie on **Chat Server 2**.
+  3. Chat Server 1 sends the message to Chat Server 2.
+  4. Chat Server 2 tries to deliver it to Charlie — but if Charlie is offline, it stores the message in the database (HBase).
+
+### 3. Database (DB Shards)
+
+- The **DB shards** hold the actual chat history.
+- Example:
+  - Alice → Charlie messages might be stored in **DB Shard 1**.
+  - Bob → Charlie messages might be stored in **DB Shard 2**.
+- This splitting of the database makes it faster and scalable.
+
+### 4. Cache Layer
+
+- There’s also a **green load balancer** that sends requests to **cache servers**.
+- Cache stores **recent messages and user status** so they can be retrieved instantly.
+- Example:
+  - If Alice just chatted with Bob, their last few messages are in the cache.
+  - When Alice opens Bob’s chat window, the app fetches from cache (super fast) instead of the database.
+
+### 5. Status Updates
+
+- Chat servers also keep track of **who’s online**.
+- Example:
+  1. Charlie logs in → Chat Server 2 detects this.
+  2. After a short delay (to avoid flapping), Chat Server 2 broadcasts “Charlie is online” to relevant users like Alice and Bob.
+  3. If Alice opens Charlie’s chat later, her app can also check the cache for Charlie’s latest status.
+
+### Flow Recap with Example
+
+1. Alice → sends a message to Charlie → goes to Chat Server 1 → routed to Chat Server 2.
+2. If Charlie is offline → stored in DB shard → status sent to Alice (offline).
+3. Charlie logs in → Chat Server 2 broadcasts “Charlie online” to Alice & Bob.
+4. Bob opens Charlie’s chat → quickly gets recent messages from cache.
+
+---
+
+## 6 Data Partitioning
+
+- **Partition by UserID hash**: `shard = hash(UserID) % 1000`
+- **All messages of a user** go to the same shard → fast chat history fetch.
+- **~1000 shards** for 3.6PB (5 years), each shard ~4TB.
+- **Logical partitions** can be mapped to fewer physical servers initially; scale out as needed.
+- **Hash function** must map logical partitions to physical servers.
+- **Unlimited history**: start with many logical partitions, add servers as storage grows.
+- **Do NOT partition by MessageID**: would slow down chat history retrieval.
+
+---
+
+## 7 Cache
+
+- Cache **last 15 messages** in **last 5 conversations** visible in the user's viewport.
+- Cache for a user resides on the same machine as their data shard.
+- Improves performance for recent message retrieval.
+
+---
+
+## 8 Load Balancing
+
+- **Chat Servers**: Load balancer maps `UserID → server` holding the user's connection.
+- **Cache Servers**: Load balancer maps `UserID → cache server` for the user.
+- Ensures efficient routing and scalability.
+
+---
+
+## 9 Fault Tolerance and Replication
+
+- **Chat Server Failures**:
+
+  - Clients auto-reconnect if the connection is lost.
+  - No failover for TCP connections (complex to implement).
+
+- **Data Replication**:
+  - Store multiple copies of user messages on different servers.
+  - Alternatively, use **Reed-Solomon encoding** for distributed replication.
+  - Ensures data recovery in case of server crashes or permanent failures.
+
+---
+
+## 10 Extended Requirements
+
+### a. Group Chat
+
+- **GroupChatID**: Identifies each group chat.
+- **Group-chat object**: Stored on chat servers, maintains a list of participants.
+- **Message Delivery**:
+  - Load balancer routes messages based on `GroupChatID`.
+  - Server handling the group chat iterates through participants to deliver messages.
+- **Database**:
+  - Store group chats in a separate table.
+  - Partition table by `GroupChatID`.
+
+### b. Push Notifications
+
+- **Purpose**: Notify offline users of new messages/events.
+- **Opt-in**: Users enable notifications via their device or browser.
+- **Flow**:
+  1. Notification server sends messages for offline users to the manufacturer’s push notification server.
+  2. Manufacturer’s server delivers notifications to the user’s device.
+- **Infrastructure**: Requires a dedicated Notification server to handle offline user messages.
+
+---
+
+
