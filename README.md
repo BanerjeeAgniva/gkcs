@@ -664,3 +664,19 @@ If a chunk already exists (based on hash match), it just **reuses the chunk**.
 | In-line       | Before storing/uploading  | Optimal storage & bandwidth  | Slightly slower uploads       |
 
 ---
+
+## Reed-Solomon Encoding
+
+> **Reed-Solomon Encoding** is an error-correcting code used to ensure data reliability.  
+> It splits data into `k` parts and adds `r` redundant parts, creating `n = k + r` total parts.  
+> Any `k` parts can reconstruct the original data, even if up to `r` parts are lost.
+
+**Example**:  
+- Original data: `D1, D2, D3`  
+- Redundant parts: `R1, R2`  
+- Total parts: `D1, D2, D3, R1, R2`  
+- If `D2` and `R1` are lost, the original data can still be reconstructed using `D1, D3, R2`.  
+
+> **Use Case**: Ensures data recovery in distributed systems when some servers fail.
+
+---
