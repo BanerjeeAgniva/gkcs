@@ -1,0 +1,127 @@
+1. Types of Applications
+-----------------------
+• Data Intensive Applications
+  - Bottleneck is the amount of data in the system
+
+• Compute Intensive Applications
+  - Bottleneck is the number of CPU cycles
+  - Translates to amount of computation required
+
+
+2. Reliability
+--------------
+Reliability = Ability of a system to be tolerant to hardware / software / human faults
+
+Fault vs Failure
+• Fault
+  - Deviation of one of the features of a system from its required behaviour
+
+• Failure
+  - System not producing the required output to the end user
+
+
+3. Scalability
+--------------
+Scalability = Ability of a system to handle more concurrent users
+               (==> translating to more LOAD) than it already does
+
+Load Parameters (broadly)
+• Number of requests per second to web server
+• Writes to database(s)
+• Number of concurrent users
+• Number of hits to cache
+
+
+4. Measuring Performance
+------------------------
+1. Keep system resources (CPU, memory, network bandwidth) constant
+   - Increase one of the load parameters
+   - Measure how much performance changes
+
+2. Increase one of the load parameters
+   - Measure how much system resources must be increased
+   - Goal: keep performance unchanged
+
+
+5. Throughput vs Latency
+------------------------
+• Throughput
+  - Time taken by a system to process x number of records / x amount of data
+  - ==> Service Time
+
+• Latency
+  - Time between a request and the response as observed by the user
+  - ==> Service Time + Delays
+
+
+6. Latency Measurements
+-----------------------
+• p50 (median)
+  - Median time to serve a request
+
+• p99
+  - Slowest response time to serve requests
+
+Why p99?
+• Slowest response times are usually tied to customers
+  who have the most data in the system
+
+
+7. Causes of High p99 Latency
+-----------------------------
+p99 response times are usually caused by queueing delays
+
+• Head of Line Blocking
+  - Server can process a limited number of requests in parallel
+    (e.g., limited CPU cores)
+  - A small number of slow requests block other requests behind them
+
+• Tail Latency Amplification
+  - A single request depends on multiple backend services
+  - The slowest backend response slows down the entire request
+
+
+8. Scaling
+----------
+• Horizontal Scaling
+  - Distribute load among multiple machines
+
+• Vertical Scaling
+  - Put load on a more powerful machine
+
+• Elastic Scaling
+  - Automatically add compute resources when load increases
+
+• Manual Scaling
+  - Resources added manually
+
+
+9. Maintainability (OSE)
+------------------------
+Maintainability = Operability + Simplicity + Extensibility
+
+• Operability
+  - Make life of the operations team easier
+
+• Simplicity
+  - Make good abstractions
+  - Remove accidental complexity
+
+• Evolvability
+  - Changing the system in the future should not be difficult
+
+
+10. Functional vs Non-Functional Requirements
+---------------------------------------------
+• Functional Requirements
+  - High-level overview of what a system does
+
+• Non-Functional Requirements
+  - Scalability
+  - Reliability
+  - Maintainability
+  - Security issues, etc.
+
+Example
+• Login with email and password → Functional
+• One system does it in 1 second, another in 1 hour → Non-functional
